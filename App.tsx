@@ -12,6 +12,7 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import TransactionEntryScreen from './src/screens/TransactionEntryScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import BalanceHistoryScreen from './src/screens/BalanceHistoryScreen';
+import Header from './src/components/Header';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -20,7 +21,8 @@ function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false,
+        headerShown: true,
+        header: () => <Header />,
         tabBarStyle: {
           backgroundColor: '#0F172A', // Dark navy to match theme
           borderTopWidth: 0,
