@@ -3,7 +3,6 @@ import {
   StyleSheet,
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   KeyboardAvoidingView,
@@ -11,106 +10,130 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
-import { CreditCard, Banknote, Check } from 'lucide-react-native';
+import { CreditCard, Banknote, Check, Plus, Minus, Search } from 'lucide-react-native';
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+}
+
+const PRODUCTS: Product[] = [
+  { id: '1', name: 'ESPRESSO SINGLE', price: 15000, category: 'Kopi' },
+  { id: '2', name: 'AMERICANO ICE', price: 22000, category: 'Kopi' },
+  { id: '3', name: 'CAFE LATTE', price: 28000, category: 'Kopi' },
+  { id: '4', name: 'CAPPUCCINO', price: 26000, category: 'Kopi' },
+  { id: '5', name: 'SIGNATURE CHOCO', price: 25000, category: 'Cokelat' },
+  { id: '6', name: 'DARK COCOA', price: 27000, category: 'Cokelat' },
+  { id: '7', name: 'EARL GREY TEA', price: 20000, category: 'Teh' },
+  { id: '8', name: 'LEMON TEA ICE', price: 18000, category: 'Teh' },
+];
 
 export default function TransactionEntryScreen() {
-  const [amount, setAmount] = useState('');
+  const [activeCategory, setActiveCategory] = useState('Kopi');
+  const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'digital'>('cash');
-  const [category, setCategory] = useState<string>('Kopi');
 
-  const categories = ['Kopi', 'Biji Kopi', 'Makanan', 'Merch'];
+  const categories = ['Kopi', 'Cokelat', 'Teh', 'Snack'];
+
+  const updateCart = (productId: string, delta: number) => {
+    setCart(prev => {
+      const currentQty = prev[productId] || 0;
+      const newQty = Math.max(0, currentQty + delta);
+      if (newQty === 0) {
+        const { [productId]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [productId]: newQty };
+    });
+  };
+
+  const filteredProducts = PRODUCTS.filter(p => p.category === activeCategory);
+  
+  const totalAmount = Object.keys(cart).reduce((total, id) => {
+    const product = PRODUCTS.find(p => p.id === id);
+    const qty = cart[id] || 0;
+    const price = product?.price || 0;
+    return total + (price * qty);
+  }, 0);
 
   return (
     <SafeAreaView style={styles.container} testID="transaction-safe-area">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.headerTitle}>Transaksi Baru</Text>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Jumlah</Text>
-            <View style={styles.amountInputContainer}>
-              <Text style={styles.currencyPrefix}>Rp</Text>
-                <TextInput
-                  style={styles.amountInput}
-                  placeholder="0"
-                  placeholderTextColor={COLORS.textSecondary}
-                  keyboardType="numeric"
-                  value={amount}
-                  onChangeText={setAmount}
-                  autoFocus={true}
-                  testID="transaction-amount-input"
-                />
-            </View>
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Kategori Produk</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipContainer}>
-              {categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat}
-                  style={[styles.chip, category === cat && styles.chipActive]}
-                  onPress={() => setCategory(cat)}
-                  testID={`transaction-category-${cat}`}
-                >
-                  <Text style={[styles.chipText, category === cat && styles.chipTextActive]}>
-                    {cat}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Metode Pembayaran</Text>
-            <View style={styles.segmentedControl}>
-              <TouchableOpacity
-                style={[
-                  styles.segmentButton,
-                  paymentMethod === 'cash' && styles.segmentButtonActive,
-                ]}
-                onPress={() => setPaymentMethod('cash')}
-                testID="transaction-payment-cash"
-              >
-                {paymentMethod === 'cash' ? (
-                  <Check size={20} color={COLORS.black} />
-                ) : (
-                  <Banknote size={20} color={COLORS.textSecondary} />
-                )}
-                <Text style={[styles.segmentText, paymentMethod === 'cash' && styles.segmentTextActive]}>
-                  Tunai
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.segmentButton,
-                  paymentMethod === 'digital' && styles.segmentButtonActive,
-                ]}
-                onPress={() => setPaymentMethod('digital')}
-                testID="transaction-payment-digital"
-              >
-                {paymentMethod === 'digital' ? (
-                  <Check size={20} color={COLORS.black} />
-                ) : (
-                  <CreditCard size={20} color={COLORS.textSecondary} />
-                )}
-                <Text style={[styles.segmentText, paymentMethod === 'digital' && styles.segmentTextActive]}>
-                  Digital
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.spacer} />
-
-          <TouchableOpacity style={styles.submitButton} testID="transaction-submit-button">
-            <Text style={styles.submitButtonText}>Konfirmasi & Catat Transaksi</Text>
-          </TouchableOpacity>
+      <View style={styles.tabContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {categories.map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              style={[styles.tab, activeCategory === cat && styles.tabActive]}
+              onPress={() => setActiveCategory(cat)}
+            >
+              <Text style={[styles.tabText, activeCategory === cat && styles.tabTextActive]}>
+                {cat.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.productList}>
+        <View style={styles.grid}>
+          {filteredProducts.map((product) => (
+            <View key={product.id} style={styles.productCard}>
+              <View style={styles.productInfo}>
+                <Text style={styles.productName}>{product.name}</Text>
+                <Text style={styles.productPrice}>Rp {product.price.toLocaleString('id-ID')}</Text>
+              </View>
+              <View style={styles.stepper}>
+                <TouchableOpacity 
+                  style={styles.stepperButton}
+                  onPress={() => updateCart(product.id, -1)}
+                >
+                  <Minus size={16} color={COLORS.black} />
+                </TouchableOpacity>
+                <Text style={styles.stepperValue}>{cart[product.id] || 0}</Text>
+                <TouchableOpacity 
+                  style={styles.stepperButton}
+                  onPress={() => updateCart(product.id, 1)}
+                >
+                  <Plus size={16} color={COLORS.black} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={styles.footer}>
+        <View style={styles.paymentSection}>
+          <TouchableOpacity 
+            style={[styles.paymentButton, paymentMethod === 'cash' && styles.paymentButtonActive]}
+            onPress={() => setPaymentMethod('cash')}
+          >
+            <Banknote size={20} color={paymentMethod === 'cash' ? COLORS.black : COLORS.textSecondary} />
+            <Text style={[styles.paymentText, paymentMethod === 'cash' && styles.paymentTextActive]}>Tunai</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.paymentButton, paymentMethod === 'digital' && styles.paymentButtonActive]}
+            onPress={() => setPaymentMethod('digital')}
+          >
+            <CreditCard size={20} color={paymentMethod === 'digital' ? COLORS.black : COLORS.textSecondary} />
+            <Text style={[styles.paymentText, paymentMethod === 'digital' && styles.paymentTextActive]}>Digital</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Total Bayar</Text>
+          <Text style={styles.totalAmount}>Rp {totalAmount.toLocaleString('id-ID')}</Text>
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.submitButton, totalAmount === 0 && styles.submitButtonDisabled]}
+          disabled={totalAmount === 0}
+        >
+          <Text style={styles.submitButtonText}>Konfirmasi & Catat Transaksi</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -120,116 +143,158 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  scrollContent: {
-    padding: SPACING.lg,
-    flexGrow: 1,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: COLORS.text,
-    marginBottom: SPACING.xl,
-  },
-  formGroup: {
-    marginBottom: SPACING.xl,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.text,
-    marginBottom: SPACING.sm,
-    opacity: 0.9,
-  },
-  amountInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    borderBottomWidth: 3,
-    borderBottomColor: COLORS.primary,
-    paddingVertical: SPACING.sm,
-  },
-  currencyPrefix: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: COLORS.primary,
-    marginRight: SPACING.xs,
-  },
-  amountInput: {
-    flex: 1,
-    fontSize: 48,
-    fontWeight: '800',
-    color: COLORS.text,
-    padding: 0,
-  },
-  chipContainer: {
-    flexDirection: 'row',
-  },
-  chip: {
-    paddingHorizontal: SPACING.lg,
+  tabContainer: {
     paddingVertical: SPACING.md,
     backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.full,
-    marginRight: SPACING.sm,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  chipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+  tab: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    marginHorizontal: SPACING.xs,
+    borderRadius: BORDER_RADIUS.sm,
   },
-  chipText: {
+  tabActive: {
+    backgroundColor: 'rgba(198, 255, 0, 0.1)',
+  },
+  tabText: {
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.textSecondary,
+    letterSpacing: 1,
   },
-  chipTextActive: {
-    color: COLORS.black,
+  tabTextActive: {
+    color: COLORS.primary,
   },
-  segmentedControl: {
+  productList: {
+    padding: SPACING.md,
+    paddingBottom: 220,
+  },
+  grid: {
+    gap: SPACING.sm,
+  },
+  productCard: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.surface,
+    padding: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.xs,
     borderWidth: 1.5,
     borderColor: COLORS.border,
   },
-  segmentButton: {
+  productInfo: {
+    flex: 1,
+  },
+  productName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.text,
+    marginBottom: 4,
+  },
+  productPrice: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceSecondary,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 4,
+    gap: 12,
+  },
+  stepperButton: {
+    backgroundColor: COLORS.primary,
+    width: 32,
+    height: 32,
+    borderRadius: BORDER_RADIUS.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepperValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: COLORS.text,
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.surface,
+    padding: SPACING.lg,
+    borderTopWidth: 2,
+    borderTopColor: COLORS.border,
+    gap: SPACING.md,
+  },
+  paymentSection: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  paymentButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: SPACING.lg,
-    borderRadius: BORDER_RADIUS.sm,
-    gap: SPACING.sm,
+    paddingVertical: SPACING.md,
+    backgroundColor: COLORS.surfaceSecondary,
+    borderRadius: BORDER_RADIUS.md,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  segmentButtonActive: {
+  paymentButtonActive: {
     backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
-  segmentText: {
-    fontSize: 16,
+  paymentText: {
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.textSecondary,
   },
-  segmentTextActive: {
+  paymentTextActive: {
     color: COLORS.black,
   },
-  spacer: {
-    flex: 1,
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: SPACING.xs,
+  },
+  totalLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    textTransform: 'uppercase',
+  },
+  totalAmount: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: COLORS.text,
   },
   submitButton: {
     backgroundColor: COLORS.primary,
-    padding: SPACING.lg,
+    height: 60,
     borderRadius: BORDER_RADIUS.md,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: SPACING.xl,
     shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  submitButtonDisabled: {
+    opacity: 0.3,
+    backgroundColor: COLORS.border,
   },
   submitButtonText: {
     color: COLORS.black,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 1,

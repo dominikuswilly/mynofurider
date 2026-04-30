@@ -17,11 +17,12 @@ export default function DashboardScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.welcomeText}>Halo Rider,</Text>
-            <Text style={styles.brandText}>NOFU COFFEE</Text>
+            <Text style={styles.welcomeText}>Selamat Pagi,</Text>
+            <Text style={styles.riderName}>Dominikus Willy</Text>
           </View>
-          <View style={styles.profileCircle}>
-            <Text style={styles.profileInitial}>R</Text>
+          <View style={styles.statusBadge}>
+            <View style={styles.statusDot} />
+            <Text style={styles.statusText}>AKTIF</Text>
           </View>
         </View>
 
@@ -76,28 +77,40 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   welcomeText: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textSecondary,
-    fontWeight: '600',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  brandText: {
-    fontSize: 26,
+  riderName: {
+    fontSize: 22,
     fontWeight: '900',
-    color: COLORS.text, // Brightest text for contrast
-    letterSpacing: 0.5,
+    color: COLORS.text,
+    marginTop: 2,
   },
-  profileCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.black,
-    justifyContent: 'center',
+  statusBadge: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.2)',
   },
-  profileInitial: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: 'bold',
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.success,
+    marginRight: 8,
+  },
+  statusText: {
+    color: COLORS.success,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
   summaryCard: {
     backgroundColor: COLORS.surface,
