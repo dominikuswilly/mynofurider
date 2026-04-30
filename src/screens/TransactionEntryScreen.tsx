@@ -5,12 +5,15 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
-import { CreditCard, Banknote, Check, Plus, Minus, Search } from 'lucide-react-native';
+import { CreditCard, Banknote, Check, Plus, Minus } from 'lucide-react-native';
+import apiClient from '../api/client';
 
 interface Product {
   id: string;
@@ -33,7 +36,9 @@ const PRODUCTS: Product[] = [
 export default function TransactionEntryScreen() {
   const [activeCategory, setActiveCategory] = useState('Kopi');
   const [cart, setCart] = useState<{ [key: string]: number }>({});
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'digital'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qris'>('cash');
+  const [loading, setLoading] = useState(false);
+  const [showReview, setShowReview] = useState(false);
 
   const categories = ['Kopi', 'Cokelat', 'Teh', 'Snack'];
 
@@ -41,11 +46,14 @@ export default function TransactionEntryScreen() {
     setCart(prev => {
       const currentQty = prev[productId] || 0;
       const newQty = Math.max(0, currentQty + delta);
+      
+      const newCart = { ...prev };
       if (newQty === 0) {
-        const { [productId]: _, ...rest } = prev;
-        return rest;
+        delete newCart[productId];
+      } else {
+        newCart[productId] = newQty;
       }
-      return { ...prev, [productId]: newQty };
+      return newCart;
     });
   };
 
@@ -57,6 +65,45 @@ export default function TransactionEntryScreen() {
     const price = product?.price || 0;
     return total + (price * qty);
   }, 0);
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    try {
+      const payload = {
+        total_amount: totalAmount,
+        payment_method: paymentMethod,
+        items: Object.keys(cart).map(id => {
+          const product = PRODUCTS.find(p => p.id === id);
+          return {
+            product_id: id,
+            name: product?.name,
+            price: product?.price,
+            quantity: cart[id]
+          };
+        })
+      };
+
+      await apiClient.post('/api/mynofupublic/transactions', payload);
+      
+      Alert.alert('Sukses', 'Transaksi berhasil dicatat!');
+      setCart({}); // Clear cart
+    } catch (error: any) {
+      Alert.alert('Gagal', error.message || 'Terjadi kesalahan saat mencatat transaksi');
+    } finally {
+      setLoading(false);
+      setShowReview(false);
+    }
+  };
+
+  const cartItems = Object.keys(cart).map(id => {
+    const product = PRODUCTS.find(p => p.id === id);
+    return {
+      id,
+      name: product?.name || 'Unknown',
+      price: product?.price || 0,
+      quantity: cart[id]
+    };
+  });
 
   return (
     <SafeAreaView style={styles.container} testID="transaction-safe-area">
@@ -114,11 +161,11 @@ export default function TransactionEntryScreen() {
             <Text style={[styles.paymentText, paymentMethod === 'cash' && styles.paymentTextActive]}>Tunai</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.paymentButton, paymentMethod === 'digital' && styles.paymentButtonActive]}
-            onPress={() => setPaymentMethod('digital')}
+            style={[styles.paymentButton, paymentMethod === 'qris' && styles.paymentButtonActive]}
+            onPress={() => setPaymentMethod('qris')}
           >
-            <CreditCard size={20} color={paymentMethod === 'digital' ? COLORS.black : COLORS.textSecondary} />
-            <Text style={[styles.paymentText, paymentMethod === 'digital' && styles.paymentTextActive]}>Digital</Text>
+            <CreditCard size={20} color={paymentMethod === 'qris' ? COLORS.black : COLORS.textSecondary} />
+            <Text style={[styles.paymentText, paymentMethod === 'qris' && styles.paymentTextActive]}>QRIS</Text>
           </TouchableOpacity>
         </View>
 
@@ -128,11 +175,92 @@ export default function TransactionEntryScreen() {
         </View>
 
         <TouchableOpacity 
-          style={[styles.submitButton, totalAmount === 0 && styles.submitButtonDisabled]}
-          disabled={totalAmount === 0}
+          style={[
+            styles.submitButton, 
+            (totalAmount === 0 || loading) && styles.submitButtonDisabled
+          ]}
+          disabled={totalAmount === 0 || loading}
+          onPress={() => setShowReview(true)}
+          testID="transaction-submit-button"
         >
-          <Text style={styles.submitButtonText}>Konfirmasi & Catat Transaksi</Text>
+          <Text style={styles.submitButtonText}>Tinjau Pesanan</Text>
         </TouchableOpacity>
+
+        <Modal
+          visible={showReview}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowReview(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.reviewCard}>
+              <Text style={styles.reviewTitle}>Tinjau Pesanan</Text>
+              
+              <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                <View style={styles.reviewItemsContainer}>
+                  {cartItems.map((item) => (
+                    <View key={item.id} style={styles.reviewItem}>
+                      <View style={styles.reviewItemLeft}>
+                        <Text style={styles.reviewItemName}>{item.name}</Text>
+                        <Text style={styles.reviewItemDetail}>
+                          {item.quantity}x @ Rp {item.price.toLocaleString('id-ID')}
+                        </Text>
+                      </View>
+                      <Text style={styles.reviewItemTotal}>
+                        Rp {(item.price * item.quantity).toLocaleString('id-ID')}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                {paymentMethod === 'qris' && (
+                  <View style={styles.qrisContainer}>
+                    <Text style={styles.qrisLabel}>PINDAI QRIS UNTUK BAYAR</Text>
+                    <View style={styles.qrisImageWrapper}>
+                      <Image 
+                        source={require('../../assets/qris_dummy.png')}
+                        style={styles.qrisImage}
+                        resizeMode="contain"
+                      />
+                    </View>
+                  </View>
+                )}
+
+                <View style={styles.reviewFooter}>
+                  <View style={styles.reviewRow}>
+                    <Text style={styles.reviewLabel}>Metode Bayar</Text>
+                    <Text style={styles.reviewValue}>{paymentMethod === 'cash' ? 'Tunai' : 'QRIS'}</Text>
+                  </View>
+                  <View style={styles.reviewRow}>
+                    <Text style={styles.reviewTotalLabel}>Total</Text>
+                    <Text style={styles.reviewTotalValue}>Rp {totalAmount.toLocaleString('id-ID')}</Text>
+                  </View>
+                </View>
+              </ScrollView>
+
+              <View style={styles.reviewActions}>
+                <TouchableOpacity 
+                  style={styles.secondaryButton}
+                  onPress={() => setShowReview(false)}
+                  disabled={loading}
+                >
+                  <Text style={styles.secondaryButtonText}>UBAH</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.primaryButton}
+                  onPress={handleConfirm}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color={COLORS.black} />
+                  ) : (
+                    <Text style={styles.primaryButtonText}>KONFIRMASI & CATAT</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -169,7 +297,7 @@ const styles = StyleSheet.create({
   },
   productList: {
     padding: SPACING.md,
-    paddingBottom: 220,
+    paddingBottom: 280,
   },
   grid: {
     gap: SPACING.sm,
@@ -298,5 +426,174 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    padding: SPACING.lg,
+  },
+  reviewCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.xl,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    maxHeight: '80%',
+  },
+  reviewTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: COLORS.text,
+    marginBottom: SPACING.md,
+    textAlign: 'center',
+    letterSpacing: 1,
+  },
+  modalScroll: {
+    marginBottom: SPACING.lg,
+  },
+  reviewItemsContainer: {
+    marginBottom: SPACING.lg,
+  },
+  reviewItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  reviewItemLeft: {
+    flex: 1,
+  },
+  reviewItemName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  reviewItemDetail: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  reviewItemTotal: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+  reviewFooter: {
+    backgroundColor: COLORS.surfaceSecondary,
+    padding: SPACING.lg,
+    borderRadius: BORDER_RADIUS.md,
+    marginBottom: SPACING.xl,
+  },
+  reviewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  reviewLabel: {
+    fontSize: 14,
+    color: COLORS.white,
+    fontWeight: '700',
+    opacity: 0.9,
+  },
+  reviewValue: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '900',
+  },
+  reviewTotalLabel: {
+    fontSize: 16,
+    color: COLORS.text,
+    fontWeight: '900',
+    marginTop: 8,
+    textAlignVertical: 'center',
+  },
+  reviewTotalValue: {
+    fontSize: 20,
+    color: COLORS.primary,
+    fontWeight: '900',
+    marginTop: 8,
+    textAlignVertical: 'center',
+  },
+  reviewActions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  secondaryButton: {
+    flex: 1,
+    height: 54,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surfaceSecondary,
+  },
+  secondaryButtonText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  primaryButton: {
+    flex: 2,
+    height: 54,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  primaryButtonText: {
+    color: COLORS.black,
+    fontSize: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  qrisContainer: {
+    alignItems: 'center',
+    marginBottom: SPACING.xl,
+    padding: SPACING.md,
+    backgroundColor: COLORS.white,
+    borderRadius: BORDER_RADIUS.md,
+  },
+  qrisLabel: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: COLORS.primary,
+    marginBottom: SPACING.md,
+    letterSpacing: 1,
+    backgroundColor: COLORS.black,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  qrisImageWrapper: {
+    width: 220,
+    height: 220,
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: BORDER_RADIUS.md,
+  },
+  qrisImage: {
+    width: '100%',
+    height: '100%',
+  },
+  qrisNote: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    marginTop: SPACING.md,
+    textAlign: 'center',
+    paddingHorizontal: SPACING.lg,
   },
 });
