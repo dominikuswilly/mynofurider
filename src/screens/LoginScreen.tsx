@@ -15,8 +15,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
+import apiClient from '../api/client';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }: any) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -30,8 +31,16 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      Alert.alert('Success', 'Login successful!');
+      const response = await apiClient.post('/mysumsel/auth', {
+        username,
+        password,
+      });
+
+      if (response.data && response.data.status === 'success') {
+        navigation.replace('Home');
+      } else {
+        Alert.alert('Login Failed', response.data?.message || 'Invalid credentials');
+      }
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Something went wrong');
     } finally {
@@ -40,12 +49,16 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} testID="login-safe-area">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
+        testID="login-keyboard-avoiding-view"
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          testID="login-scroll-view"
+        >
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <Image
@@ -70,6 +83,7 @@ export default function LoginScreen() {
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
+                  testID="login-username-input"
                 />
               </View>
             </View>
@@ -85,10 +99,12 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  testID="login-password-input"
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeIcon}
+                  testID="login-password-toggle"
                 >
                   {showPassword ? (
                     <EyeOff size={20} color={COLORS.textSecondary} />
@@ -99,7 +115,7 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.forgotPassword}>
+            <TouchableOpacity style={styles.forgotPassword} testID="login-forgot-password-button">
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
 
@@ -107,6 +123,7 @@ export default function LoginScreen() {
               style={[styles.loginButton, loading && styles.loginButtonDisabled]}
               onPress={handleLogin}
               disabled={loading}
+              testID="login-submit-button"
             >
               {loading ? (
                 <ActivityIndicator color={COLORS.black} />

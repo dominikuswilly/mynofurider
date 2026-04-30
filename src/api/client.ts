@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://apinofudev.bengkelfajarjaya.com/mynofurider';
+const BASE_URL = 'https://apinofudev.bengkelfajarjaya.com';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
