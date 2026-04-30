@@ -40,7 +40,7 @@ export default function LoginScreen({ navigation }: any) {
       if (response.data && response.data.access_token) {
         const { access_token, refresh_token } = response.data;
         await storage.saveTokens(access_token, refresh_token);
-        navigation.replace('Home');
+        navigation.replace('Main');
       } else {
         Alert.alert('Login Failed', 'Invalid credentials or missing tokens');
       }
