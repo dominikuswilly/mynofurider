@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
-import { ArrowUpRight } from 'lucide-react-native';
+import { ArrowUpRight, Hammer } from 'lucide-react-native';
 
 export default function DashboardScreen({ navigation }: any) {
 
@@ -43,19 +43,20 @@ export default function DashboardScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.lastTransactionCard}>
-          <Text style={styles.lastTransactionLabel}>Transaksi Terakhir</Text>
-          <Text style={styles.lastTransactionValue}>Rp 45.000 • 10:45 AM</Text>
+        <View style={styles.constructionCard}>
+          <View style={styles.constructionHeader}>
+            <Hammer size={18} color={COLORS.primary} />
+            <Text style={styles.constructionTitle}>SEGERA HADIR</Text>
+          </View>
+          <Text style={styles.constructionText}>Riwayat transaksi real-time sedang dalam pengembangan.</Text>
         </View>
 
-
-
-        <View style={styles.newsCard}>
-          <Text style={styles.newsTitle}>Status Stasiun</Text>
-          <Text style={styles.newsContent}>Stasiun #402 yang ditugaskan kepada Anda kehabisan Arabica Beans.</Text>
-          <TouchableOpacity style={styles.newsButton}>
-            <Text style={styles.newsButtonText}>Perbaiki Sekarang</Text>
-          </TouchableOpacity>
+        <View style={styles.constructionCard}>
+          <View style={styles.constructionHeader}>
+            <Hammer size={18} color={COLORS.primary} />
+            <Text style={styles.constructionTitle}>MONITORING STASIUN</Text>
+          </View>
+          <Text style={styles.constructionText}>Fitur pemantauan status stasiun otomatis akan tersedia pada versi berikutnya.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -179,33 +180,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  newsCard: {
-    backgroundColor: COLORS.black,
+  constructionCard: {
+    backgroundColor: COLORS.surface,
     padding: SPACING.lg,
-    borderRadius: BORDER_RADIUS.md,
-    marginTop: SPACING.sm,
-  },
-  newsTitle: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: SPACING.xs,
-  },
-  newsContent: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    lineHeight: 20,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     marginBottom: SPACING.md,
+    borderStyle: 'dashed',
   },
-  newsButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    borderRadius: BORDER_RADIUS.sm,
-    alignSelf: 'flex-start',
+  constructionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
   },
-  newsButtonText: {
-    color: COLORS.black,
-    fontWeight: 'bold',
+  constructionTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: COLORS.primary,
+    letterSpacing: 1.5,
+  },
+  constructionText: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+    fontWeight: '600',
   },
 });
