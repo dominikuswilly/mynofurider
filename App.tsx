@@ -22,15 +22,19 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: COLORS.white,
-          borderTopWidth: 2,
-          borderTopColor: COLORS.black,
+          backgroundColor: '#0F172A', // Dark navy to match theme
+          borderTopWidth: 0,
           height: 70,
           paddingBottom: 10,
           paddingTop: 10,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 8,
         },
-        tabBarActiveTintColor: COLORS.black,
-        tabBarInactiveTintColor: '#888888',
+        tabBarActiveTintColor: COLORS.primary, // Brand Lime Green
+        tabBarInactiveTintColor: '#64748B',
         tabBarIcon: ({ color, size }) => {
           let icon;
           if (route.name === 'Dashboard') icon = <LayoutDashboard size={size} color={color} />;
@@ -41,13 +45,20 @@ function MainTabs() {
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: 'bold',
+          fontWeight: '700',
         },
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Transactions" component={TransactionEntryScreen} />
-      <Tab.Screen name="Inventory" component={InventoryScreen} />
+      <Tab.Screen 
+        name="Inventory" 
+        component={InventoryScreen} 
+        options={{
+          tabBarBadge: 1,
+          tabBarBadgeStyle: { backgroundColor: COLORS.error, color: COLORS.white, fontSize: 10 }
+        }}
+      />
       <Tab.Screen name="Balance" component={BalanceHistoryScreen} />
     </Tab.Navigator>
   );

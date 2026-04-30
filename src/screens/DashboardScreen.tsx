@@ -8,15 +8,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
-import { ArrowUpRight, Package, AlertCircle, Wallet, Plus } from 'lucide-react-native';
+import { ArrowUpRight } from 'lucide-react-native';
 
 export default function DashboardScreen({ navigation }: any) {
-  const quickActions = [
-    { id: '1', title: 'Transact', icon: Plus, screen: 'Transactions' },
-    { id: '2', title: 'Refill', icon: Package, screen: 'Inventory' },
-    { id: '3', title: 'Report', icon: AlertCircle, screen: 'Inventory' },
-    { id: '4', title: 'Wallet', icon: Wallet, screen: 'Balance' },
-  ];
 
   return (
     <SafeAreaView style={styles.container} testID="dashboard-safe-area">
@@ -35,6 +29,10 @@ export default function DashboardScreen({ navigation }: any) {
           <View style={styles.summaryInfo}>
             <Text style={styles.summaryLabel}>Total Earnings</Text>
             <Text style={styles.summaryValue}>Rp 1.280.000</Text>
+            <View style={styles.trendBadge}>
+              <ArrowUpRight size={14} color={COLORS.success} />
+              <Text style={styles.trendText}>+12.5% this week</Text>
+            </View>
           </View>
           <TouchableOpacity 
             style={styles.viewDetailsButton}
@@ -44,21 +42,12 @@ export default function DashboardScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.grid}>
-          {quickActions.map((action) => (
-            <TouchableOpacity 
-              key={action.id} 
-              style={styles.gridItem}
-              onPress={() => navigation.navigate(action.screen)}
-            >
-              <View style={styles.iconContainer}>
-                <action.icon size={32} color={COLORS.black} />
-              </View>
-              <Text style={styles.gridText}>{action.title}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.lastTransactionCard}>
+          <Text style={styles.lastTransactionLabel}>Last Transaction</Text>
+          <Text style={styles.lastTransactionValue}>Rp 45.000 • 10:45 AM</Text>
         </View>
+
+
 
         <View style={styles.newsCard}>
           <Text style={styles.newsTitle}>Station Status</Text>
@@ -87,14 +76,15 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   welcomeText: {
-    fontSize: 16,
-    color: COLORS.black,
-    opacity: 0.7,
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
   },
   brandText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.black,
+    fontSize: 26,
+    fontWeight: '900',
+    color: COLORS.text, // Brightest text for contrast
+    letterSpacing: 0.5,
   },
   profileCircle: {
     width: 48,
@@ -110,68 +100,72 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   summaryCard: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.xl,
+    backgroundColor: COLORS.surface,
+    padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: SPACING.xl,
-    borderWidth: 2,
-    borderColor: COLORS.black,
+    marginBottom: SPACING.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
   },
   summaryInfo: {
     flex: 1,
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.textSecondary,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
     marginBottom: 4,
   },
   summaryValue: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.black,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  trendBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+  trendText: {
+    fontSize: 12,
+    color: COLORS.success,
+    fontWeight: '700',
+  },
+  lastTransactionCard: {
+    backgroundColor: COLORS.surfaceSecondary,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+    marginBottom: SPACING.xl,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  lastTransactionLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+  },
+  lastTransactionValue: {
+    fontSize: 12,
+    color: COLORS.text,
+    fontWeight: '700',
   },
   viewDetailsButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.black,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.black,
-    marginBottom: SPACING.md,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.md,
-    marginBottom: SPACING.xl,
-  },
-  gridItem: {
-    width: '47.5%',
-    backgroundColor: COLORS.white,
-    padding: SPACING.lg,
-    borderRadius: BORDER_RADIUS.md,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: COLORS.black,
-  },
-  iconContainer: {
-    marginBottom: SPACING.sm,
-  },
-  gridText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.black,
-  },
+
   newsCard: {
     backgroundColor: COLORS.black,
     padding: SPACING.lg,
