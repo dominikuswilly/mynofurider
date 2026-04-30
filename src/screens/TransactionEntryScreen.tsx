@@ -16,9 +16,9 @@ import { CreditCard, Banknote, Check } from 'lucide-react-native';
 export default function TransactionEntryScreen() {
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'digital'>('cash');
-  const [category, setCategory] = useState<string>('Coffee');
+  const [category, setCategory] = useState<string>('Kopi');
 
-  const categories = ['Coffee', 'Beans', 'Food', 'Merch'];
+  const categories = ['Kopi', 'Biji Kopi', 'Makanan', 'Merch'];
 
   return (
     <SafeAreaView style={styles.container} testID="transaction-safe-area">
@@ -27,10 +27,10 @@ export default function TransactionEntryScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.headerTitle}>New Transaction</Text>
+          <Text style={styles.headerTitle}>Transaksi Baru</Text>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Amount</Text>
+            <Text style={styles.label}>Jumlah</Text>
             <View style={styles.amountInputContainer}>
               <Text style={styles.currencyPrefix}>Rp</Text>
                 <TextInput
@@ -47,7 +47,7 @@ export default function TransactionEntryScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Product Category</Text>
+            <Text style={styles.label}>Kategori Produk</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipContainer}>
               {categories.map((cat) => (
                 <TouchableOpacity
@@ -65,7 +65,7 @@ export default function TransactionEntryScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Payment Method</Text>
+            <Text style={styles.label}>Metode Pembayaran</Text>
             <View style={styles.segmentedControl}>
               <TouchableOpacity
                 style={[
@@ -81,7 +81,7 @@ export default function TransactionEntryScreen() {
                   <Banknote size={20} color={COLORS.textSecondary} />
                 )}
                 <Text style={[styles.segmentText, paymentMethod === 'cash' && styles.segmentTextActive]}>
-                  Cash
+                  Tunai
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -107,7 +107,7 @@ export default function TransactionEntryScreen() {
           <View style={styles.spacer} />
 
           <TouchableOpacity style={styles.submitButton} testID="transaction-submit-button">
-            <Text style={styles.submitButtonText}>Confirm & Log Transaction</Text>
+            <Text style={styles.submitButtonText}>Konfirmasi & Catat Transaksi</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>

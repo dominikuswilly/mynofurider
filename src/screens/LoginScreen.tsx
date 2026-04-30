@@ -26,7 +26,7 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleLogin = async () => {
     if (!username || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Error', 'Harap isi semua bidang');
       return;
     }
 
@@ -42,10 +42,10 @@ export default function LoginScreen({ navigation }: any) {
         await storage.saveTokens(access_token, refresh_token);
         navigation.replace('Main');
       } else {
-        Alert.alert('Login Failed', 'Invalid credentials or missing tokens');
+        Alert.alert('Login Gagal', 'Kredensial tidak valid atau token hilang');
       }
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Something went wrong');
+      Alert.alert('Login Gagal', error.message || 'Terjadi kesalahan');
     } finally {
       setLoading(false);
     }
@@ -72,18 +72,18 @@ export default function LoginScreen({ navigation }: any) {
             </View>
             <View style={styles.headerText}>
               <Text style={styles.title}>NOFU Rider</Text>
-              <Text style={styles.subtitle}>Partner Portal</Text>
+              <Text style={styles.subtitle}>Portal Mitra</Text>
             </View>
           </View>
 
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Username</Text>
+              <Text style={styles.label}>Nama Pengguna</Text>
               <View style={styles.inputWrapper}>
                 <User size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Username"
+                  placeholder="Nama Pengguna"
                   placeholderTextColor={COLORS.textSecondary}
                   value={username}
                   onChangeText={setUsername}
@@ -97,12 +97,12 @@ export default function LoginScreen({ navigation }: any) {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password</Text>
+              <Text style={styles.label}>Kata Sandi</Text>
               <View style={styles.inputWrapper}>
                 <Lock size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Password"
+                  placeholder="Kata Sandi"
                   placeholderTextColor={COLORS.textSecondary}
                   value={password}
                   onChangeText={setPassword}
@@ -135,14 +135,14 @@ export default function LoginScreen({ navigation }: any) {
                 <ActivityIndicator color={COLORS.black} />
               ) : (
                 <>
-                  <Text style={styles.loginButtonText}>Sign In</Text>
+                  <Text style={styles.loginButtonText}>Masuk</Text>
                   <ArrowRight size={20} color={COLORS.black} />
                 </>
               )}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.forgotPassword} testID="login-forgot-password-button">
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              <Text style={styles.forgotPasswordText}>Lupa Kata Sandi?</Text>
             </TouchableOpacity>
           </View>
 

@@ -13,26 +13,26 @@ import { ArrowUpRight, Package, AlertCircle, TrendingUp, ChevronRight } from 'lu
 export default function BalanceHistoryScreen() {
   const sections = [
     {
-      title: 'Today',
+      title: 'Hari Ini',
       data: [
-        { id: '1', type: 'transaction', subType: 'Sales', amount: 'Rp 45.000', time: '10:45 AM', status: 'Success' },
-        { id: '2', type: 'request', subType: 'Refill', amount: '20 Items', time: '09:30 AM', status: 'Pending' },
+        { id: '1', type: 'transaction', subType: 'Penjualan', amount: 'Rp 45.000', time: '10:45 AM', status: 'Berhasil' },
+        { id: '2', type: 'request', subType: 'Isi Ulang', amount: '20 Barang', time: '09:30 AM', status: 'Menunggu' },
       ]
     },
     {
-      title: 'Yesterday',
+      title: 'Kemarin',
       data: [
-        { id: '3', type: 'report', subType: 'Damage', amount: '1 Damage', time: '04:15 PM', status: 'Critical' },
-        { id: '4', type: 'transaction', subType: 'Bonus', amount: 'Rp 120.500', time: '11:20 AM', status: 'Success' },
+        { id: '3', type: 'report', subType: 'Kerusakan', amount: '1 Kerusakan', time: '04:15 PM', status: 'Kritis' },
+        { id: '4', type: 'transaction', subType: 'Bonus', amount: 'Rp 120.500', time: '11:20 AM', status: 'Berhasil' },
       ]
     }
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Success': return COLORS.success;
-      case 'Pending': return '#F59E0B'; // Amber
-      case 'Critical': return COLORS.error;
+      case 'Berhasil': return COLORS.success;
+      case 'Menunggu': return '#F59E0B'; // Amber
+      case 'Kritis': return COLORS.error;
       default: return COLORS.textSecondary;
     }
   };
@@ -49,27 +49,27 @@ export default function BalanceHistoryScreen() {
   return (
     <SafeAreaView style={styles.container} testID="balance-safe-area">
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.headerTitle}>Rider Wallet</Text>
+        <Text style={styles.headerTitle}>Dompet Rider</Text>
         
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
             <View>
-              <Text style={styles.balanceLabel}>Current Balance</Text>
+              <Text style={styles.balanceLabel}>Saldo Saat Ini</Text>
               <Text style={styles.balanceAmount}>Rp 485.500</Text>
             </View>
             <TouchableOpacity style={styles.withdrawButton}>
-              <Text style={styles.withdrawText}>Withdraw</Text>
+              <Text style={styles.withdrawText}>Tarik Tunai</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.cardFooter}>
-            <Text style={styles.cardFooterText}>Station #402 • Verified Partner</Text>
+            <Text style={styles.cardFooterText}>Stasiun #402 • Mitra Terverifikasi</Text>
           </View>
         </View>
 
         <View style={styles.chartContainer}>
           <View style={styles.chartHeader}>
-            <Text style={styles.sectionTitle}>Earnings Trend</Text>
-            <Text style={styles.chartSubTitle}>Last 7 days</Text>
+            <Text style={styles.sectionTitle}>Tren Pendapatan</Text>
+            <Text style={styles.chartSubTitle}>7 hari terakhir</Text>
           </View>
           <View style={styles.chartLineContainer}>
              <View style={styles.chartLine} />
@@ -87,9 +87,9 @@ export default function BalanceHistoryScreen() {
         </View>
 
         <View style={styles.activityHeader}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <Text style={styles.sectionTitle}>Aktivitas Terakhir</Text>
           <TouchableOpacity>
-            <Text style={styles.viewAllText}>View All</Text>
+            <Text style={styles.viewAllText}>Lihat Semua</Text>
           </TouchableOpacity>
         </View>
 

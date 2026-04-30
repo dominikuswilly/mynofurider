@@ -10,12 +10,12 @@ export default function Header() {
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to log out?',
+      'Keluar',
+      'Apakah Anda yakin ingin keluar?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Batal', style: 'cancel' },
         { 
-          text: 'Logout', 
+          text: 'Keluar', 
           style: 'destructive',
           onPress: async () => {
             await storage.clearTokens();
@@ -31,7 +31,7 @@ export default function Header() {
       <Text style={styles.title}>Nofu Rider</Text>
       <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
         <LogOut size={20} color={COLORS.error} />
-        <Text style={styles.logoutText}>Logout</Text>
+        <Text style={styles.logoutText}>Keluar</Text>
       </TouchableOpacity>
     </View>
   );

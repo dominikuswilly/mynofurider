@@ -17,7 +17,7 @@ export default function DashboardScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.welcomeText}>Hello Rider,</Text>
+            <Text style={styles.welcomeText}>Halo Rider,</Text>
             <Text style={styles.brandText}>NOFU COFFEE</Text>
           </View>
           <View style={styles.profileCircle}>
@@ -27,11 +27,11 @@ export default function DashboardScreen({ navigation }: any) {
 
         <View style={styles.summaryCard}>
           <View style={styles.summaryInfo}>
-            <Text style={styles.summaryLabel}>Total Earnings</Text>
+            <Text style={styles.summaryLabel}>Total Pendapatan</Text>
             <Text style={styles.summaryValue}>Rp 1.280.000</Text>
             <View style={styles.trendBadge}>
               <ArrowUpRight size={14} color={COLORS.success} />
-              <Text style={styles.trendText}>+12.5% this week</Text>
+              <Text style={styles.trendText}>+12.5% minggu ini</Text>
             </View>
           </View>
           <TouchableOpacity 
@@ -43,17 +43,17 @@ export default function DashboardScreen({ navigation }: any) {
         </View>
 
         <View style={styles.lastTransactionCard}>
-          <Text style={styles.lastTransactionLabel}>Last Transaction</Text>
+          <Text style={styles.lastTransactionLabel}>Transaksi Terakhir</Text>
           <Text style={styles.lastTransactionValue}>Rp 45.000 • 10:45 AM</Text>
         </View>
 
 
 
         <View style={styles.newsCard}>
-          <Text style={styles.newsTitle}>Station Status</Text>
-          <Text style={styles.newsContent}>Your assigned station #402 is running low on Arabica Beans.</Text>
+          <Text style={styles.newsTitle}>Status Stasiun</Text>
+          <Text style={styles.newsContent}>Stasiun #402 yang ditugaskan kepada Anda kehabisan Arabica Beans.</Text>
           <TouchableOpacity style={styles.newsButton}>
-            <Text style={styles.newsButtonText}>Fix Now</Text>
+            <Text style={styles.newsButtonText}>Perbaiki Sekarang</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -22,7 +22,7 @@ export default function InventoryScreen() {
           onPress={() => setActiveTab('request')}
         >
           <Text style={[styles.tabText, activeTab === 'request' && styles.tabTextActive]}>
-            Request Stock
+            Permintaan Stok
           </Text>
           {activeTab === 'request' && <View style={styles.activeIndicator} />}
         </TouchableOpacity>
@@ -31,7 +31,7 @@ export default function InventoryScreen() {
           onPress={() => setActiveTab('report')}
         >
           <Text style={[styles.tabText, activeTab === 'report' && styles.tabTextActive]}>
-            Report Damage
+            Lapor Kerusakan
           </Text>
           {activeTab === 'report' && <View style={styles.activeIndicator} />}
         </TouchableOpacity>
@@ -85,7 +85,7 @@ const RequestStockView = () => {
           <View style={styles.itemInfo}>
             <Text style={styles.itemName}>{item.name}</Text>
             <View style={styles.stockInfo}>
-              <Text style={styles.stockLabel}>Stock: </Text>
+              <Text style={styles.stockLabel}>Stok: </Text>
               <Text style={[styles.stockValue, { color: getStockColor(item.stock) }]}>
                 {item.stock}
               </Text>
@@ -125,18 +125,18 @@ const ReportDamageView = () => {
   return (
     <View style={styles.form}>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Item Code</Text>
+        <Text style={styles.label}>Kode Barang</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter product ID"
+          placeholder="Masukkan ID produk"
           placeholderTextColor={COLORS.textSecondary}
         />
       </View>
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Issue Description</Text>
+        <Text style={styles.label}>Deskripsi Masalah</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
-          placeholder="Describe the issue..."
+          placeholder="Jelaskan masalahnya..."
           placeholderTextColor={COLORS.textSecondary}
           multiline
           numberOfLines={4}
@@ -144,10 +144,10 @@ const ReportDamageView = () => {
       </View>
       <TouchableOpacity style={styles.photoUpload}>
         <Camera size={40} color={COLORS.primary} />
-        <Text style={styles.photoText}>TAP TO TAKE PHOTO OF DAMAGE</Text>
+        <Text style={styles.photoText}>TEKAN UNTUK AMBIL FOTO KERUSAKAN</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.submitButton}>
-        <Text style={styles.submitButtonText}>SUBMIT CRITICAL REPORT</Text>
+        <Text style={styles.submitButtonText}>KIRIM LAPORAN KRITIS</Text>
       </TouchableOpacity>
     </View>
   );
