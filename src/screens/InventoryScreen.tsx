@@ -115,7 +115,7 @@ export default function InventoryScreen() {
             handleManualInput={handleManualInput} 
           />
         ) : (
-          <ReportDamageView />
+          <ReportDamageView items={requestItems} />
         )}
       </ScrollView>
 
@@ -256,13 +256,58 @@ const RequestStockView = ({ items, updateRequest, handleManualInput }: any) => {
   );
 };
 
-const ReportDamageView = () => {
+const ReportDamageView = ({ items }: { items: InventoryItem[] }) => {
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [damageQty, setDamageQty] = useState(1);
+
   return (
     <View style={styles.form}>
-      <Text style={styles.formLabel}>Pilih Item</Text>
-      <TouchableOpacity style={styles.pickerButton}>
-        <Text style={styles.pickerText}>Pilih produk yang rusak...</Text>
-      </TouchableOpacity>
+      <Text style={styles.formLabel}>Pilih Item yang Rusak</Text>
+      
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.itemPickerScroll}>
+        {items.map((item) => (
+          <TouchableOpacity 
+            key={item.id} 
+            style={[
+              styles.pickerItem,
+              selectedItemId === item.id && styles.pickerItemActive
+            ]}
+            onPress={() => setSelectedItemId(item.id)}
+          >
+            <View style={[
+              styles.pickerIconContainer,
+              selectedItemId === item.id && styles.pickerIconContainerActive
+            ]}>
+              <item.icon size={20} color={selectedItemId === item.id ? COLORS.black : COLORS.primary} />
+            </View>
+            <Text style={[
+              styles.pickerItemName,
+              selectedItemId === item.id && styles.pickerItemNameActive
+            ]} numberOfLines={1}>
+              {item.name.split(' ')[0]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <View style={styles.qtySection}>
+        <Text style={styles.formLabel}>Jumlah Kerusakan</Text>
+        <View style={styles.damageStepper}>
+          <TouchableOpacity 
+            style={styles.damageStepperBtn}
+            onPress={() => setDamageQty(prev => Math.max(1, prev - 1))}
+          >
+            <Minus size={20} color={COLORS.black} />
+          </TouchableOpacity>
+          <Text style={styles.damageQtyText}>{damageQty}</Text>
+          <TouchableOpacity 
+            style={styles.damageStepperBtn}
+            onPress={() => setDamageQty(prev => prev + 1)}
+          >
+            <Plus size={20} color={COLORS.black} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <Text style={styles.formLabel}>Keterangan Kerusakan</Text>
       <TextInput
@@ -597,5 +642,72 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     textTransform: 'uppercase',
+  },
+  itemPickerScroll: {
+    marginBottom: SPACING.md,
+  },
+  pickerItem: {
+    width: 80,
+    alignItems: 'center',
+    marginRight: SPACING.md,
+    padding: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  pickerItemActive: {
+    backgroundColor: 'rgba(198, 255, 0, 0.1)',
+    borderColor: COLORS.primary,
+  },
+  pickerIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(198, 255, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  pickerIconContainerActive: {
+    backgroundColor: COLORS.primary,
+  },
+  pickerItemName: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  pickerItemNameActive: {
+    color: COLORS.text,
+  },
+  qtySection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  damageStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceSecondary,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 4,
+    gap: 12,
+  },
+  damageStepperBtn: {
+    backgroundColor: COLORS.primary,
+    width: 36,
+    height: 36,
+    borderRadius: BORDER_RADIUS.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  damageQtyText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: COLORS.text,
+    minWidth: 30,
+    textAlign: 'center',
   },
 });
