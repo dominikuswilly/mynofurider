@@ -6,11 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
-import { Plus, Minus, Camera, Send } from 'lucide-react-native';
+import { Plus, Minus, Camera, Send, Coffee, Package, Bean } from 'lucide-react-native';
 
 export default function InventoryScreen() {
   const [activeTab, setActiveTab] = useState<'request' | 'report'>('request');
@@ -25,6 +24,7 @@ export default function InventoryScreen() {
           <Text style={[styles.tabText, activeTab === 'request' && styles.tabTextActive]}>
             Request Stock
           </Text>
+          {activeTab === 'request' && <View style={styles.activeIndicator} />}
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'report' && styles.tabActive]}
@@ -33,6 +33,7 @@ export default function InventoryScreen() {
           <Text style={[styles.tabText, activeTab === 'report' && styles.tabTextActive]}>
             Report Damage
           </Text>
+          {activeTab === 'report' && <View style={styles.activeIndicator} />}
         </TouchableOpacity>
       </View>
 
@@ -44,34 +45,77 @@ export default function InventoryScreen() {
 }
 
 const RequestStockView = () => {
-  const items = [
-    { id: '1', name: 'Original Cold Brew', stock: 12 },
-    { id: '2', name: 'Vanilla Latte', stock: 8 },
-    { id: '3', name: 'Arabica Beans (250g)', stock: 5 },
-  ];
+  const [items, setItems] = useState([
+    { id: '1', name: 'Original Cold Brew', stock: 12, request: '0', icon: Coffee },
+    { id: '2', name: 'Vanilla Latte', stock: 8, request: '0', icon: Coffee },
+    { id: '3', name: 'Arabica Beans (250g)', stock: 5, request: '0', icon: Bean },
+    { id: '4', name: 'Paper Cups (S)', stock: 0, request: '0', icon: Package },
+  ]);
+
+  const updateRequest = (id: string, delta: number) => {
+    setItems(items.map(item => {
+      if (item.id === id) {
+        const newVal = Math.max(0, parseInt(item.request || '0') + delta);
+        return { ...item, request: newVal.toString() };
+      }
+      return item;
+    }));
+  };
+
+  const handleManualInput = (id: string, text: string) => {
+    const numericValue = text.replace(/[^0-9]/g, '');
+    setItems(items.map(item => 
+      item.id === id ? { ...item, request: numericValue } : item
+    ));
+  };
+
+  const getStockColor = (stock: number) => {
+    if (stock === 0) return COLORS.error;
+    if (stock < 10) return COLORS.primary;
+    return COLORS.textSecondary;
+  };
 
   return (
-    <View>
+    <View style={styles.viewContainer}>
       {items.map((item) => (
         <View key={item.id} style={styles.itemCard}>
-          <View style={styles.itemImagePlaceholder} />
+          <View style={styles.itemIconContainer}>
+            <item.icon size={24} color={COLORS.primary} />
+          </View>
           <View style={styles.itemInfo}>
             <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.itemStock}>Current Stock: {item.stock}</Text>
+            <View style={styles.stockInfo}>
+              <Text style={styles.stockLabel}>Stock: </Text>
+              <Text style={[styles.stockValue, { color: getStockColor(item.stock) }]}>
+                {item.stock}
+              </Text>
+            </View>
           </View>
           <View style={styles.stepper}>
-            <TouchableOpacity style={styles.stepperButton}>
-              <Minus size={20} color={COLORS.white} />
+            <TouchableOpacity 
+              style={styles.stepperButton}
+              onPress={() => updateRequest(item.id, -1)}
+            >
+              <Minus size={18} color={COLORS.black} />
             </TouchableOpacity>
-            <Text style={styles.stepperValue}>0</Text>
-            <TouchableOpacity style={styles.stepperButton}>
-              <Plus size={20} color={COLORS.white} />
+            <TextInput
+              style={styles.stepperInput}
+              value={item.request}
+              onChangeText={(text) => handleManualInput(item.id, text)}
+              keyboardType="numeric"
+              selectTextOnFocus
+            />
+            <TouchableOpacity 
+              style={styles.stepperButton}
+              onPress={() => updateRequest(item.id, 1)}
+            >
+              <Plus size={18} color={COLORS.black} />
             </TouchableOpacity>
           </View>
         </View>
       ))}
       <TouchableOpacity style={styles.submitFab}>
-        <Send size={24} color={COLORS.white} />
+        <Send size={28} color={COLORS.black} />
       </TouchableOpacity>
     </View>
   );
@@ -99,7 +143,7 @@ const ReportDamageView = () => {
         />
       </View>
       <TouchableOpacity style={styles.photoUpload}>
-        <Camera size={32} color={COLORS.black} />
+        <Camera size={40} color={COLORS.primary} />
         <Text style={styles.photoText}>TAP TO TAKE PHOTO OF DAMAGE</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.submitButton}>
@@ -116,47 +160,62 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(0,0,0,0.05)',
     margin: SPACING.md,
+    backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.xs,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   tab: {
     flex: 1,
     paddingVertical: SPACING.md,
     alignItems: 'center',
-    borderRadius: BORDER_RADIUS.sm,
+    position: 'relative',
   },
   tabActive: {
-    backgroundColor: COLORS.black,
+    // No background change, just the indicator
+  },
+  activeIndicator: {
+    position: 'absolute',
+    bottom: 8,
+    width: 24,
+    height: 3,
+    backgroundColor: COLORS.primary,
+    borderRadius: 2,
   },
   tabText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.black,
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
   },
   tabTextActive: {
-    color: COLORS.white,
+    color: COLORS.text,
   },
   content: {
     padding: SPACING.md,
-    paddingBottom: 100,
+    paddingBottom: 120,
+  },
+  viewContainer: {
+    flex: 1,
   },
   itemCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     padding: SPACING.md,
-    borderRadius: BORDER_RADIUS.md,
+    borderRadius: BORDER_RADIUS.lg,
     marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
   },
-  itemImagePlaceholder: {
-    width: 60,
-    height: 60,
+  itemIconContainer: {
+    width: 50,
+    height: 50,
     backgroundColor: COLORS.surfaceSecondary,
-    borderRadius: BORDER_RADIUS.sm,
+    borderRadius: BORDER_RADIUS.md,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   itemInfo: {
     flex: 1,
@@ -164,101 +223,119 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.black,
+    fontWeight: '800',
+    color: COLORS.text,
   },
-  itemStock: {
-    fontSize: 14,
+  stockInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  stockLabel: {
+    fontSize: 13,
     color: COLORS.textSecondary,
-    marginTop: 2,
+    fontWeight: '600',
+  },
+  stockValue: {
+    fontSize: 14,
+    fontWeight: '800',
   },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.md,
+    backgroundColor: COLORS.surfaceSecondary,
+    borderRadius: BORDER_RADIUS.md,
+    padding: 4,
   },
   stepperButton: {
-    backgroundColor: COLORS.black,
+    backgroundColor: COLORS.primary,
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: BORDER_RADIUS.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  stepperValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.black,
-    minWidth: 20,
+  stepperInput: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: COLORS.text,
+    minWidth: 40,
     textAlign: 'center',
+    padding: 0,
   },
   submitFab: {
     position: 'absolute',
     right: 0,
-    bottom: -60,
-    backgroundColor: COLORS.black,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    bottom: -80,
+    backgroundColor: COLORS.primary,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 5,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    elevation: 8,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
   },
   form: {
-    marginTop: SPACING.md,
+    marginTop: SPACING.sm,
   },
   inputGroup: {
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.xl,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.black,
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
     marginBottom: SPACING.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   input: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.md,
+    backgroundColor: COLORS.surface,
+    padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 2,
-    borderColor: COLORS.black,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
     fontSize: 16,
-    color: COLORS.black,
+    color: COLORS.text,
   },
   textArea: {
-    height: 120,
+    height: 140,
     textAlignVertical: 'top',
   },
   photoUpload: {
-    height: 200,
+    height: 180,
     borderWidth: 2,
-    borderColor: COLORS.black,
+    borderColor: COLORS.border,
     borderStyle: 'dashed',
-    borderRadius: BORDER_RADIUS.md,
+    borderRadius: BORDER_RADIUS.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.xl,
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    marginBottom: SPACING.xxl,
+    backgroundColor: COLORS.surface,
   },
   photoText: {
     marginTop: SPACING.md,
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: COLORS.black,
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.textSecondary,
+    letterSpacing: 0.5,
   },
   submitButton: {
-    backgroundColor: COLORS.black,
+    backgroundColor: COLORS.primary,
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
+    height: 60,
+    justifyContent: 'center',
   },
   submitButtonText: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: COLORS.black,
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
 });
