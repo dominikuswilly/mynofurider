@@ -1,18 +1,18 @@
 export const COLORS = {
-  primary: '#C6FF00', // Vibrant Neon Lime Green
-  accent: '#000000',  // Jet Black
-  background: '#C6FF00', // Brand uses lime as background
-  surface: '#FFFFFF',
-  surfaceSecondary: '#F5F5F5',
-  text: '#000000',
-  textSecondary: '#4A4A4A',
-  border: '#E1E3E6',
-  error: '#FF3B30',
-  success: '#34C759',
+  primary: '#C6FF00', // Vibrant Neon Lime Green (Accent)
+  accent: '#C6FF00',
+  background: '#0F172A', // Deep Navy/Charcoal
+  surface: '#1E293B',    // Lighter surface for cards
+  surfaceSecondary: '#334155',
+  text: '#F8FAFC',       // Crisp light text
+  textSecondary: '#94A3B8',
+  border: '#334155',
+  error: '#FF453A',
+  success: '#32D74B',
   white: '#FFFFFF',
   black: '#000000',
-  gray: '#E0E0E0',
-  charcoal: '#333333',
+  charcoal: '#0F172A',
+  slate: '#1E293B',
 };
 
 export const SPACING = {

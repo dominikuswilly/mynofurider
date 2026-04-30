@@ -70,8 +70,10 @@ export default function LoginScreen({ navigation }: any) {
                 resizeMode="contain"
               />
             </View>
-            <Text style={styles.title}>Rider App</Text>
-            <Text style={styles.subtitle}>Partner Delivery Portal</Text>
+            <View style={styles.headerText}>
+              <Text style={styles.title}>NOFU Rider</Text>
+              <Text style={styles.subtitle}>Partner Portal</Text>
+            </View>
           </View>
 
           <View style={styles.form}>
@@ -81,11 +83,14 @@ export default function LoginScreen({ navigation }: any) {
                 <User size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter your username"
+                  placeholder="Username"
                   placeholderTextColor={COLORS.textSecondary}
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
+                  autoFocus={true}
+                  textContentType="username"
+                  autoComplete="username"
                   testID="login-username-input"
                 />
               </View>
@@ -97,11 +102,13 @@ export default function LoginScreen({ navigation }: any) {
                 <Lock size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter your password"
+                  placeholder="Password"
                   placeholderTextColor={COLORS.textSecondary}
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
+                  textContentType="password"
+                  autoComplete="password"
                   testID="login-password-input"
                 />
                 <TouchableOpacity
@@ -118,10 +125,6 @@ export default function LoginScreen({ navigation }: any) {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.forgotPassword} testID="login-forgot-password-button">
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={[styles.loginButton, loading && styles.loginButtonDisabled]}
               onPress={handleLogin}
@@ -136,6 +139,10 @@ export default function LoginScreen({ navigation }: any) {
                   <ArrowRight size={20} color={COLORS.black} />
                 </>
               )}
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.forgotPassword} testID="login-forgot-password-button">
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
           </View>
 
@@ -161,14 +168,15 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.lg,
   },
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.xxl,
+    marginTop: SPACING.lg,
   },
   logoContainer: {
-    width: 150,
-    height: 150,
-    marginBottom: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
+    width: 80,
+    height: 80,
+    borderRadius: BORDER_RADIUS.md,
     overflow: 'hidden',
     backgroundColor: COLORS.primary,
   },
@@ -176,16 +184,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  headerText: {
+    marginLeft: SPACING.md,
+  },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: COLORS.text,
-    marginBottom: SPACING.xs,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.textSecondary,
-    textAlign: 'center',
   },
   form: {
     flex: 1,
@@ -198,15 +207,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: SPACING.sm,
+    opacity: 0.8,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.secondary,
+    backgroundColor: COLORS.surface,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
-    height: 56,
-    borderWidth: 1,
+    height: 60,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
   },
   inputIcon: {
@@ -220,37 +230,33 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: SPACING.sm,
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: SPACING.xl,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    color: COLORS.text,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
   loginButton: {
     backgroundColor: COLORS.primary,
-    height: 56,
+    height: 60,
     borderRadius: BORDER_RADIUS.md,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    marginTop: SPACING.md,
   },
   loginButtonDisabled: {
-    opacity: 0.7,
+    opacity: 0.5,
   },
   loginButtonText: {
     color: COLORS.black,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     marginRight: SPACING.sm,
+  },
+  forgotPassword: {
+    alignSelf: 'center',
+    marginTop: SPACING.xl,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 
 });
