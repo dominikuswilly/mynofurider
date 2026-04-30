@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import apiClient from '../api/client';
+import { storage } from '../utils/storage';
 
 export default function LoginScreen({ navigation }: any) {
   const [username, setUsername] = useState('');
@@ -31,15 +32,17 @@ export default function LoginScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      const response = await apiClient.post('/mysumsel/auth', {
+      const response = await apiClient.post('/api/mynofupublic/auth', {
         username,
         password,
       });
 
-      if (response.data && response.data.status === 'success') {
+      if (response.data && response.data.access_token) {
+        const { access_token, refresh_token } = response.data;
+        await storage.saveTokens(access_token, refresh_token);
         navigation.replace('Home');
       } else {
-        Alert.alert('Login Failed', response.data?.message || 'Invalid credentials');
+        Alert.alert('Login Failed', 'Invalid credentials or missing tokens');
       }
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Something went wrong');
