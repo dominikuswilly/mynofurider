@@ -1,0 +1,12 @@
+import axios from 'axios';
+
+const BASE_URL = 'https://apinofudev.bengkelfajarjaya.com/mynofurider';
+
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export default apiClient;
