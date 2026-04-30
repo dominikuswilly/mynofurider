@@ -6,13 +6,83 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  ActivityIndicator,
+  Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
-import { Plus, Minus, Camera, Send, Coffee, Package, Bean } from 'lucide-react-native';
+import { CreditCard, Banknote, Check, Plus, Minus, Camera, Send, Coffee, Package, Bean } from 'lucide-react-native';
+import apiClient from '../api/client';
+
+interface InventoryItem {
+  id: string;
+  name: string;
+  stock: number;
+  request: string;
+  icon: any;
+}
 
 export default function InventoryScreen() {
   const [activeTab, setActiveTab] = useState<'request' | 'report'>('request');
+  
+  // Lifted state for Restock Request
+  const [requestItems, setRequestItems] = useState<InventoryItem[]>([
+    { id: '1', name: 'Original Cold Brew', stock: 12, request: '0', icon: Coffee },
+    { id: '2', name: 'Vanilla Latte', stock: 8, request: '0', icon: Coffee },
+    { id: '3', name: 'Arabica Beans (250g)', stock: 5, request: '0', icon: Bean },
+    { id: '4', name: 'Paper Cups (S)', stock: 0, request: '0', icon: Package },
+  ]);
+  const [loading, setLoading] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+
+  const updateRequest = (id: string, delta: number) => {
+    setRequestItems(prev => prev.map(item => {
+      if (item.id === id) {
+        const newVal = Math.max(0, parseInt(item.request || '0') + delta);
+        return { ...item, request: newVal.toString() };
+      }
+      return item;
+    }));
+  };
+
+  const handleManualInput = (id: string, value: string) => {
+    const cleanValue = value.replace(/[^0-9]/g, '');
+    setRequestItems(prev => prev.map(item => 
+      item.id === id ? { ...item, request: cleanValue } : item
+    ));
+  };
+
+  const handleSubmit = async () => {
+    const itemsToRequest = requestItems.filter(item => parseInt(item.request) > 0);
+    
+    if (itemsToRequest.length === 0) {
+      Alert.alert('Peringatan', 'Harap isi jumlah permintaan stok terlebih dahulu.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        items: itemsToRequest.map(item => ({
+          product_id: item.id,
+          quantity: parseInt(item.request)
+        }))
+      };
+
+      await apiClient.post('/api/mynofupublic/restocks', payload);
+      
+      Alert.alert('Sukses', 'Permintaan stok berhasil dikirim!');
+      setRequestItems(prev => prev.map(item => ({ ...item, request: '0' })));
+    } catch (error: any) {
+      Alert.alert('Gagal', error.message || 'Terjadi kesalahan saat mengirim permintaan');
+    } finally {
+      setLoading(false);
+      setShowReview(false);
+    }
+  };
+
+  const itemsToRequest = requestItems.filter(item => parseInt(item.request) > 0);
 
   return (
     <SafeAreaView style={styles.container} testID="inventory-safe-area">
@@ -38,37 +108,105 @@ export default function InventoryScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {activeTab === 'request' ? <RequestStockView /> : <ReportDamageView />}
+        {activeTab === 'request' ? (
+          <RequestStockView 
+            items={requestItems} 
+            updateRequest={updateRequest} 
+            handleManualInput={handleManualInput} 
+          />
+        ) : (
+          <ReportDamageView />
+        )}
       </ScrollView>
+
+      {/* FIXED FAB POSITION AT THE BOTTOM RIGHT */}
+      {activeTab === 'request' && (
+        <TouchableOpacity 
+          style={[styles.submitFab, loading && styles.submitFabDisabled]} 
+          onPress={() => {
+            if (itemsToRequest.length === 0) {
+              Alert.alert('Peringatan', 'Harap isi jumlah permintaan stok terlebih dahulu.');
+            } else {
+              setShowReview(true);
+            }
+          }}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color={COLORS.black} />
+          ) : (
+            <Send size={28} color={COLORS.black} />
+          )}
+        </TouchableOpacity>
+      )}
+
+      {/* RESTOCK REVIEW MODAL */}
+      <Modal
+        visible={showReview}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowReview(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.reviewCard}>
+            <Text style={styles.reviewTitle}>Tinjau Permintaan</Text>
+            
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.reviewItemsContainer}>
+                {itemsToRequest.map((item) => (
+                  <View key={item.id} style={styles.reviewItem}>
+                    <View style={styles.reviewItemLeft}>
+                      <Text style={styles.reviewItemName}>{item.name}</Text>
+                      <Text style={styles.reviewItemStock}>Stok Saat Ini: {item.stock}</Text>
+                    </View>
+                    <View style={styles.reviewItemRight}>
+                      <Text style={styles.reviewItemQty}>+{item.request}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.reviewFooter}>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Total Item</Text>
+                  <Text style={styles.reviewValue}>{itemsToRequest.length} Produk</Text>
+                </View>
+                <View style={styles.reviewRow}>
+                  <Text style={styles.reviewLabel}>Status</Text>
+                  <Text style={styles.reviewValueStatus}>MENUNGGU PERSETUJUAN</Text>
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.reviewActions}>
+              <TouchableOpacity 
+                style={styles.secondaryButton}
+                onPress={() => setShowReview(false)}
+                disabled={loading}
+              >
+                <Text style={styles.secondaryButtonText}>UBAH</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.primaryButton}
+                onPress={handleSubmit}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={COLORS.black} />
+                ) : (
+                  <Text style={styles.primaryButtonText}>KIRIM PERMINTAAN</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+            <View style={{ height: 32 }} /> 
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const RequestStockView = () => {
-  const [items, setItems] = useState([
-    { id: '1', name: 'Original Cold Brew', stock: 12, request: '0', icon: Coffee },
-    { id: '2', name: 'Vanilla Latte', stock: 8, request: '0', icon: Coffee },
-    { id: '3', name: 'Arabica Beans (250g)', stock: 5, request: '0', icon: Bean },
-    { id: '4', name: 'Paper Cups (S)', stock: 0, request: '0', icon: Package },
-  ]);
-
-  const updateRequest = (id: string, delta: number) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const newVal = Math.max(0, parseInt(item.request || '0') + delta);
-        return { ...item, request: newVal.toString() };
-      }
-      return item;
-    }));
-  };
-
-  const handleManualInput = (id: string, text: string) => {
-    const numericValue = text.replace(/[^0-9]/g, '');
-    setItems(items.map(item => 
-      item.id === id ? { ...item, request: numericValue } : item
-    ));
-  };
-
+const RequestStockView = ({ items, updateRequest, handleManualInput }: any) => {
   const getStockColor = (stock: number) => {
     if (stock === 0) return COLORS.error;
     if (stock < 10) return COLORS.primary;
@@ -76,22 +214,22 @@ const RequestStockView = () => {
   };
 
   return (
-    <View style={styles.viewContainer}>
-      {items.map((item) => (
-        <View key={item.id} style={styles.itemCard}>
-          <View style={styles.itemIconContainer}>
-            <item.icon size={24} color={COLORS.primary} />
-          </View>
-          <View style={styles.itemInfo}>
-            <Text style={styles.itemName}>{item.name}</Text>
-            <View style={styles.stockInfo}>
-              <Text style={styles.stockLabel}>Stok: </Text>
-              <Text style={[styles.stockValue, { color: getStockColor(item.stock) }]}>
-                {item.stock}
+    <View style={styles.section}>
+      {items.map((item: any) => (
+        <View key={item.id} style={styles.inventoryCard}>
+          <View style={styles.itemHeader}>
+            <View style={styles.iconContainer}>
+              <item.icon size={20} color={COLORS.primary} />
+            </View>
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemName}>{item.name}</Text>
+              <Text style={[styles.itemStock, { color: getStockColor(item.stock) }]}>
+                Stok: {item.stock} unit
               </Text>
             </View>
           </View>
-          <View style={styles.stepper}>
+          
+          <View style={styles.requestAction}>
             <TouchableOpacity 
               style={styles.stepperButton}
               onPress={() => updateRequest(item.id, -1)}
@@ -99,7 +237,7 @@ const RequestStockView = () => {
               <Minus size={18} color={COLORS.black} />
             </TouchableOpacity>
             <TextInput
-              style={styles.stepperInput}
+              style={styles.requestInput}
               value={item.request}
               onChangeText={(text) => handleManualInput(item.id, text)}
               keyboardType="numeric"
@@ -114,9 +252,6 @@ const RequestStockView = () => {
           </View>
         </View>
       ))}
-      <TouchableOpacity style={styles.submitFab}>
-        <Send size={28} color={COLORS.black} />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -124,30 +259,27 @@ const RequestStockView = () => {
 const ReportDamageView = () => {
   return (
     <View style={styles.form}>
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Kode Barang</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Masukkan ID produk"
-          placeholderTextColor={COLORS.textSecondary}
-        />
-      </View>
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Deskripsi Masalah</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Jelaskan masalahnya..."
-          placeholderTextColor={COLORS.textSecondary}
-          multiline
-          numberOfLines={4}
-        />
-      </View>
-      <TouchableOpacity style={styles.photoUpload}>
-        <Camera size={40} color={COLORS.primary} />
-        <Text style={styles.photoText}>TEKAN UNTUK AMBIL FOTO KERUSAKAN</Text>
+      <Text style={styles.formLabel}>Pilih Item</Text>
+      <TouchableOpacity style={styles.pickerButton}>
+        <Text style={styles.pickerText}>Pilih produk yang rusak...</Text>
       </TouchableOpacity>
+
+      <Text style={styles.formLabel}>Keterangan Kerusakan</Text>
+      <TextInput
+        style={styles.textArea}
+        placeholder="Jelaskan detail kerusakan..."
+        placeholderTextColor={COLORS.textSecondary}
+        multiline
+        numberOfLines={4}
+      />
+
+      <TouchableOpacity style={styles.photoButton}>
+        <Camera size={24} color={COLORS.primary} />
+        <Text style={styles.photoButtonText}>Ambil Foto Bukti</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.submitButton}>
-        <Text style={styles.submitButtonText}>KIRIM LAPORAN KRITIS</Text>
+        <Text style={styles.submitButtonText}>Kirim Laporan</Text>
       </TouchableOpacity>
     </View>
   );
@@ -160,92 +292,85 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    margin: SPACING.md,
     backgroundColor: COLORS.surface,
-    borderRadius: BORDER_RADIUS.md,
-    padding: SPACING.xs,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    paddingTop: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
   tab: {
     flex: 1,
-    paddingVertical: SPACING.md,
     alignItems: 'center',
+    paddingVertical: SPACING.md,
     position: 'relative',
   },
-  tabActive: {
-    // No background change, just the indicator
-  },
+  tabActive: {},
   activeIndicator: {
     position: 'absolute',
-    bottom: 8,
-    width: 24,
+    bottom: 0,
+    width: '40%',
     height: 3,
     backgroundColor: COLORS.primary,
-    borderRadius: 2,
+    borderRadius: 3,
   },
   tabText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: COLORS.textSecondary,
   },
   tabTextActive: {
-    color: COLORS.text,
+    color: COLORS.primary,
   },
   content: {
     padding: SPACING.md,
-    paddingBottom: 120,
+    paddingBottom: 100, // Extra space for FAB
   },
-  viewContainer: {
-    flex: 1,
+  section: {
+    gap: SPACING.md,
   },
-  itemCard: {
+  inventoryCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  itemHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
-    padding: SPACING.md,
-    borderRadius: BORDER_RADIUS.lg,
-    marginBottom: SPACING.md,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
+    flex: 1,
   },
-  itemIconContainer: {
-    width: 50,
-    height: 50,
-    backgroundColor: COLORS.surfaceSecondary,
-    borderRadius: BORDER_RADIUS.md,
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(198, 255, 0, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: SPACING.md,
   },
   itemInfo: {
     flex: 1,
-    marginLeft: SPACING.md,
   },
   itemName: {
     fontSize: 16,
     fontWeight: '800',
     color: COLORS.text,
+    marginBottom: 4,
   },
-  stockInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
+  itemStock: {
+    fontSize: 12,
+    fontWeight: '700',
   },
-  stockLabel: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-  },
-  stockValue: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  stepper: {
+  requestAction: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surfaceSecondary,
     borderRadius: BORDER_RADIUS.md,
     padding: 4,
+    gap: 8,
   },
   stepperButton: {
     backgroundColor: COLORS.primary,
@@ -255,87 +380,222 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  stepperInput: {
+  requestInput: {
+    width: 40,
+    textAlign: 'center',
     fontSize: 16,
     fontWeight: '900',
     color: COLORS.text,
-    minWidth: 40,
-    textAlign: 'center',
     padding: 0,
   },
   submitFab: {
     position: 'absolute',
-    right: 0,
-    bottom: -80,
+    bottom: SPACING.xl,
+    right: SPACING.xl,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: COLORS.primary,
-    width: 68,
-    height: 68,
-    borderRadius: 34,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
     shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
-    shadowRadius: 12,
+    shadowRadius: 10,
+    elevation: 8,
+    zIndex: 999, // Ensure it's on top
   },
-  form: {
-    marginTop: SPACING.sm,
+  submitFabDisabled: {
+    opacity: 0.6,
+    backgroundColor: COLORS.border,
   },
-  inputGroup: {
-    marginBottom: SPACING.xl,
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    padding: SPACING.lg,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '700',
+  reviewCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.xl,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    maxHeight: '80%',
+  },
+  reviewTitle: {
+    fontSize: 24,
+    fontWeight: '900',
     color: COLORS.text,
-    marginBottom: SPACING.sm,
-    textTransform: 'uppercase',
+    marginBottom: SPACING.md,
+    textAlign: 'center',
     letterSpacing: 1,
   },
-  input: {
-    backgroundColor: COLORS.surface,
+  modalScroll: {
+    marginBottom: SPACING.lg,
+  },
+  reviewItemsContainer: {
+    marginBottom: SPACING.lg,
+  },
+  reviewItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  reviewItemLeft: {
+    flex: 1,
+  },
+  reviewItemName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.text,
+  },
+  reviewItemStock: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  reviewItemRight: {
+    backgroundColor: 'rgba(198, 255, 0, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  reviewItemQty: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: COLORS.primary,
+  },
+  reviewFooter: {
+    backgroundColor: COLORS.surfaceSecondary,
     padding: SPACING.lg,
+    borderRadius: BORDER_RADIUS.md,
+    marginBottom: SPACING.md,
+  },
+  reviewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  reviewLabel: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    fontWeight: '700',
+  },
+  reviewValue: {
+    fontSize: 13,
+    color: COLORS.text,
+    fontWeight: '900',
+  },
+  reviewValueStatus: {
+    fontSize: 12,
+    color: '#FBBF24',
+    fontWeight: '900',
+  },
+  reviewActions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  secondaryButton: {
+    flex: 1,
+    height: 54,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: BORDER_RADIUS.md,
     borderWidth: 1.5,
     borderColor: COLORS.border,
-    fontSize: 16,
-    color: COLORS.text,
+    backgroundColor: COLORS.surfaceSecondary,
   },
-  textArea: {
-    height: 140,
-    textAlignVertical: 'top',
+  secondaryButtonText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
-  photoUpload: {
-    height: 180,
-    borderWidth: 2,
-    borderColor: COLORS.border,
-    borderStyle: 'dashed',
-    borderRadius: BORDER_RADIUS.lg,
+  primaryButton: {
+    flex: 2,
+    height: 54,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.xxl,
-    backgroundColor: COLORS.surface,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  photoText: {
-    marginTop: SPACING.md,
-    fontSize: 12,
+  primaryButtonText: {
+    color: COLORS.black,
+    fontSize: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  form: {
+    marginTop: SPACING.sm,
+    gap: SPACING.md,
+  },
+  formLabel: {
+    fontSize: 13,
     fontWeight: '800',
     color: COLORS.textSecondary,
-    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  pickerButton: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.lg,
+    borderRadius: BORDER_RADIUS.md,
+  },
+  pickerText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+  },
+  textArea: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: SPACING.lg,
+    borderRadius: BORDER_RADIUS.md,
+    color: COLORS.text,
+    fontSize: 14,
+    height: 120,
+    textAlignVertical: 'top',
+  },
+  photoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(198, 255, 0, 0.05)',
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderStyle: 'dashed',
+    padding: SPACING.lg,
+    borderRadius: BORDER_RADIUS.md,
+    gap: 12,
+  },
+  photoButtonText: {
+    color: COLORS.primary,
+    fontSize: 15,
+    fontWeight: '800',
   },
   submitButton: {
     backgroundColor: COLORS.primary,
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
-    height: 65,
-    justifyContent: 'center',
+    marginTop: SPACING.md,
   },
   submitButtonText: {
     color: COLORS.black,
     fontSize: 16,
     fontWeight: '900',
-    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
 });
