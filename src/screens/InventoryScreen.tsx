@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
-    height: 60,
+    height: 65,
     justifyContent: 'center',
   },
   submitButtonText: {
