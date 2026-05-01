@@ -70,7 +70,7 @@ export default function InventoryScreen() {
         }))
       };
 
-      await apiClient.post('/api/mynofupublic/restocks', payload);
+      await apiClient.post('public/restocks', payload);
       
       Alert.alert('Sukses', 'Permintaan stok berhasil dikirim!');
       setRequestItems(prev => prev.map(item => ({ ...item, request: '0' })));
@@ -85,7 +85,7 @@ export default function InventoryScreen() {
   const itemsToRequest = requestItems.filter(item => parseInt(item.request) > 0);
 
   return (
-    <SafeAreaView style={styles.container} testID="inventory-safe-area">
+    <SafeAreaView style={styles.container} testID="inventory-safe-area" edges={['left', 'right']}>
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'request' && styles.tabActive]}

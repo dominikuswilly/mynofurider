@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet,
   View,
@@ -11,6 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { CreditCard, Banknote, Check, Plus, Minus } from 'lucide-react-native';
 import apiClient from '../api/client';
@@ -20,32 +22,120 @@ interface Product {
   name: string;
   price: number;
   category: string;
+  qty_current: number;
 }
 
-const PRODUCTS: Product[] = [
-  { id: '1', name: 'ESPRESSO SINGLE', price: 15000, category: 'Kopi' },
-  { id: '2', name: 'AMERICANO ICE', price: 22000, category: 'Kopi' },
-  { id: '3', name: 'CAFE LATTE', price: 28000, category: 'Kopi' },
-  { id: '4', name: 'CAPPUCCINO', price: 26000, category: 'Kopi' },
-  { id: '5', name: 'SIGNATURE CHOCO', price: 25000, category: 'Cokelat' },
-  { id: '6', name: 'DARK COCOA', price: 27000, category: 'Cokelat' },
-  { id: '7', name: 'EARL GREY TEA', price: 20000, category: 'Teh' },
-  { id: '8', name: 'LEMON TEA ICE', price: 18000, category: 'Teh' },
-];
+
 
 export default function TransactionEntryScreen() {
-  const [activeCategory, setActiveCategory] = useState('Kopi');
+  const insets = useSafeAreaInsets();
+  const [activeCategory, setActiveCategory] = useState('');
+  const [categories, setCategories] = useState<string[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  
+  const [activeProducts, setActiveProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productRegistry, setProductRegistry] = useState<Record<string, Product>>({});
+  
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qris'>('cash');
   const [loading, setLoading] = useState(false);
   const [showReview, setShowReview] = useState(false);
 
-  const categories = ['Kopi', 'Cokelat', 'Teh', 'Snack'];
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reload current category products on focus
+      if (activeCategory) {
+        fetchProducts(activeCategory);
+      }
+    }, [activeCategory])
+  );
+
+  useEffect(() => {
+    if (activeCategory) {
+      fetchProducts(activeCategory);
+    }
+  }, [activeCategory]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await apiClient.get('private/inventory/categories');
+      if (response.data && response.data.status === 'success') {
+        // Save new access token if provided
+        if (response.data.access_token) {
+          const refreshToken = await storage.getRefreshToken();
+          await storage.saveTokens(response.data.access_token, refreshToken || '');
+        }
+
+        const catNames = response.data.data.map((c: any) => c.name);
+        setCategories(catNames);
+        if (catNames.length > 0) {
+          setActiveCategory(catNames[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      Alert.alert('Error', 'Gagal memuat kategori produk');
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const fetchProducts = async (category: string) => {
+    setProductsLoading(true);
+    try {
+      const response = await apiClient.get(`private/inventories/${category}`);
+      if (response.data && response.data.status === 'success') {
+        // Save new access token if provided
+        if (response.data.access_token) {
+          const refreshToken = await storage.getRefreshToken();
+          await storage.saveTokens(response.data.access_token, refreshToken || '');
+        }
+
+        const rawData = response.data.data || [];
+        const products = rawData.map((p: any) => ({
+          id: p.product_id,
+          name: p.product_name,
+          price: parseFloat(p.amount_sell) || 0,
+          category: category,
+          qty_current: p.qty_current || 0
+        }));
+
+        setActiveProducts(products);
+        
+        // Update registry to resolve cart items later
+        setProductRegistry(prev => {
+          const newRegistry = { ...prev };
+          products.forEach((p: Product) => {
+            newRegistry[p.id] = p;
+          });
+          return newRegistry;
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      Alert.alert('Error', 'Gagal memuat produk');
+    } finally {
+      setProductsLoading(false);
+    }
+  };
 
   const updateCart = (productId: string, delta: number) => {
+    const product = productRegistry[productId];
+    const maxQty = product?.qty_current || 0;
+    const currentQty = cart[productId] || 0;
+    
+    if (delta > 0 && currentQty >= maxQty) {
+      Alert.alert('Stok Terbatas', `Maaf, stok hanya tersedia ${maxQty} unit.`);
+      return;
+    }
+
     setCart(prev => {
-      const currentQty = prev[productId] || 0;
-      const newQty = Math.max(0, currentQty + delta);
+      const newQty = Math.max(0, (prev[productId] || 0) + delta);
       
       const newCart = { ...prev };
       if (newQty === 0) {
@@ -57,10 +147,8 @@ export default function TransactionEntryScreen() {
     });
   };
 
-  const filteredProducts = PRODUCTS.filter(p => p.category === activeCategory);
-  
   const totalAmount = Object.keys(cart).reduce((total, id) => {
-    const product = PRODUCTS.find(p => p.id === id);
+    const product = productRegistry[id];
     const qty = cart[id] || 0;
     const price = product?.price || 0;
     return total + (price * qty);
@@ -73,7 +161,7 @@ export default function TransactionEntryScreen() {
         total_amount: totalAmount,
         payment_method: paymentMethod,
         items: Object.keys(cart).map(id => {
-          const product = PRODUCTS.find(p => p.id === id);
+          const product = productRegistry[id];
           return {
             product_id: id,
             name: product?.name,
@@ -83,7 +171,7 @@ export default function TransactionEntryScreen() {
         })
       };
 
-      await apiClient.post('/api/mynofupublic/transactions', payload);
+      await apiClient.post('private/transaction/sales', payload);
       
       Alert.alert('Sukses', 'Transaksi berhasil dicatat!');
       setCart({}); // Clear cart
@@ -96,7 +184,7 @@ export default function TransactionEntryScreen() {
   };
 
   const cartItems = Object.keys(cart).map(id => {
-    const product = PRODUCTS.find(p => p.id === id);
+    const product = productRegistry[id];
     return {
       id,
       name: product?.name || 'Unknown',
@@ -105,53 +193,72 @@ export default function TransactionEntryScreen() {
     };
   });
 
+  const FOOTER_HEIGHT = 220 + insets.bottom;
+
   return (
-    <SafeAreaView style={styles.container} testID="transaction-safe-area">
+    <SafeAreaView style={styles.container} testID="transaction-safe-area" edges={['left', 'right']}>
       <View style={styles.tabContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.tab, activeCategory === cat && styles.tabActive]}
-              onPress={() => setActiveCategory(cat)}
-            >
-              <Text style={[styles.tabText, activeCategory === cat && styles.tabTextActive]}>
-                {cat.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {categoriesLoading ? (
+          <ActivityIndicator color={COLORS.primary} style={{ paddingVertical: 10 }} />
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {categories.map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={[styles.tab, activeCategory === cat && styles.tabActive]}
+                onPress={() => setActiveCategory(cat)}
+              >
+                <Text style={[styles.tabText, activeCategory === cat && styles.tabTextActive]}>
+                  {cat.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
-      <ScrollView contentContainerStyle={styles.productList}>
-        <View style={styles.grid}>
-          {filteredProducts.map((product) => (
-            <View key={product.id} style={styles.productCard}>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{product.name}</Text>
-                <Text style={styles.productPrice}>Rp {product.price.toLocaleString('id-ID')}</Text>
+      <ScrollView contentContainerStyle={[styles.productList, { paddingBottom: FOOTER_HEIGHT + 20 }]}>
+        {productsLoading ? (
+          <View style={{ paddingVertical: 40 }}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+          </View>
+        ) : (
+          <View style={styles.grid}>
+            {activeProducts.length > 0 ? (
+              activeProducts.map((product) => (
+                <View key={product.id} style={styles.productCard}>
+                  <View style={styles.productInfo}>
+                    <Text style={styles.productName}>{product.name}</Text>
+                    <Text style={styles.productPrice}>Rp {(product.price || 0).toLocaleString('id-ID')}</Text>
+                    <Text style={styles.productStock}>Stok: {product.qty_current}</Text>
+                  </View>
+                  <View style={styles.stepper}>
+                    <TouchableOpacity 
+                      style={styles.stepperButton}
+                      onPress={() => updateCart(product.id, -1)}
+                    >
+                      <Minus size={16} color={COLORS.black} />
+                    </TouchableOpacity>
+                    <Text style={styles.stepperValue}>{cart[product.id] || 0}</Text>
+                    <TouchableOpacity 
+                      style={styles.stepperButton}
+                      onPress={() => updateCart(product.id, 1)}
+                    >
+                      <Plus size={16} color={COLORS.black} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={{ width: '100%', alignItems: 'center', paddingVertical: 40 }}>
+                <Text style={{ color: '#64748B', fontWeight: '500' }}>Tidak ada produk di kategori ini</Text>
               </View>
-              <View style={styles.stepper}>
-                <TouchableOpacity 
-                  style={styles.stepperButton}
-                  onPress={() => updateCart(product.id, -1)}
-                >
-                  <Minus size={16} color={COLORS.black} />
-                </TouchableOpacity>
-                <Text style={styles.stepperValue}>{cart[product.id] || 0}</Text>
-                <TouchableOpacity 
-                  style={styles.stepperButton}
-                  onPress={() => updateCart(product.id, 1)}
-                >
-                  <Plus size={16} color={COLORS.black} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-        </View>
+            )}
+          </View>
+        )}
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <View style={styles.paymentSection}>
           <TouchableOpacity 
             style={[styles.paymentButton, paymentMethod === 'cash' && styles.paymentButtonActive]}
@@ -171,7 +278,7 @@ export default function TransactionEntryScreen() {
 
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total Bayar</Text>
-          <Text style={styles.totalAmount}>Rp {totalAmount.toLocaleString('id-ID')}</Text>
+          <Text style={styles.totalAmount}>Rp {(totalAmount || 0).toLocaleString('id-ID')}</Text>
         </View>
 
         <TouchableOpacity 
@@ -203,11 +310,11 @@ export default function TransactionEntryScreen() {
                       <View style={styles.reviewItemLeft}>
                         <Text style={styles.reviewItemName}>{item.name}</Text>
                         <Text style={styles.reviewItemDetail}>
-                          {item.quantity}x @ Rp {item.price.toLocaleString('id-ID')}
+                          {item.quantity}x @ Rp {(item.price || 0).toLocaleString('id-ID')}
                         </Text>
                       </View>
                       <Text style={styles.reviewItemTotal}>
-                        Rp {(item.price * item.quantity).toLocaleString('id-ID')}
+                        Rp {((item.price || 0) * item.quantity).toLocaleString('id-ID')}
                       </Text>
                     </View>
                   ))}
@@ -233,7 +340,7 @@ export default function TransactionEntryScreen() {
                   </View>
                   <View style={styles.reviewRow}>
                     <Text style={styles.reviewTotalLabel}>Total</Text>
-                    <Text style={styles.reviewTotalValue}>Rp {totalAmount.toLocaleString('id-ID')}</Text>
+                    <Text style={styles.reviewTotalValue}>Rp {(totalAmount || 0).toLocaleString('id-ID')}</Text>
                   </View>
                 </View>
               </ScrollView>
@@ -324,6 +431,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  productStock: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   stepper: {
     flexDirection: 'row',

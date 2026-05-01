@@ -16,9 +16,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import apiClient from '../api/client';
-import { storage } from '../utils/storage';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginScreen({ navigation }: any) {
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -32,15 +33,14 @@ export default function LoginScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      const response = await apiClient.post('/api/mynofupublic/auth', {
+      const response = await apiClient.post('public/auth', {
         username,
         password,
       });
 
       if (response.data && response.data.access_token) {
         const { access_token, refresh_token } = response.data;
-        await storage.saveTokens(access_token, refresh_token);
-        navigation.replace('Main');
+        await login(access_token, refresh_token);
       } else {
         Alert.alert('Login Gagal', 'Kredensial tidak valid atau token hilang');
       }

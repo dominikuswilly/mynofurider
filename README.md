@@ -82,6 +82,54 @@ You've successfully run and modified your React Native App. :partying_face:
 - If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
 - If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
 
+# Publishing to Play Store
+
+To release your app to the Google Play Store, you need to generate a signed Android App Bundle (AAB).
+
+## 1. Setup Signing Key
+
+The project is already configured to use a release key. Ensure you have the `my-release-key.keystore` file in the `android/app/` directory.
+
+The signing credentials should be set in `android/gradle.properties`:
+
+```properties
+MYNOFU_RELEASE_STORE_FILE=my-release-key.keystore
+MYNOFU_RELEASE_KEY_ALIAS=my-key-alias
+MYNOFU_RELEASE_STORE_PASSWORD=*****
+MYNOFU_RELEASE_KEY_PASSWORD=*****
+```
+
+## 2. Generate the Release Bundle
+
+Before generating the bundle, make sure to increment the `versionCode` and `versionName` in `android/app/build.gradle` if you are uploading a new version.
+
+Run the following command from the root directory to build the `.aab` file:
+
+```sh
+cd android && ./gradlew bundleRelease
+```
+
+The generated file will be located at:
+`android/app/build/outputs/bundle/release/app-release.aab`
+
+## 3. Test the Release Build
+
+It is recommended to test the release version on a real device before uploading:
+
+```sh
+# Using npm
+npm run android -- --mode="release"
+
+# OR using Yarn
+yarn android --mode="release"
+```
+
+## 4. Upload to Play Console
+
+1. Log in to the [Google Play Console](https://play.google.com/console).
+2. Select your app and go to **Production** > **Releases**.
+3. Upload the `.aab` file and follow the prompts to rollout the release.
+
 # Troubleshooting
 
 If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
