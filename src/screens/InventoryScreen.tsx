@@ -70,7 +70,7 @@ export default function InventoryScreen() {
         }))
       };
 
-      await apiClient.post('/api/mynofupublic/restocks', payload);
+      await apiClient.post('public/restocks', payload);
       
       Alert.alert('Sukses', 'Permintaan stok berhasil dikirim!');
       setRequestItems(prev => prev.map(item => ({ ...item, request: '0' })));

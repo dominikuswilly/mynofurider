@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { storage } from '../utils/storage';
 
-const BASE_URL = 'https://apinofudev.bengkelfajarjaya.com';
+const BASE_URL = 'https://apinofudev.bengkelfajarjaya.com/api/mynofu/';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,

@@ -32,7 +32,7 @@ export default function LoginScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      const response = await apiClient.post('/api/mynofupublic/auth', {
+      const response = await apiClient.post('public/auth', {
         username,
         password,
       });

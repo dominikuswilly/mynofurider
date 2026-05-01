@@ -85,7 +85,7 @@ export default function TransactionEntryScreen() {
         })
       };
 
-      await apiClient.post('/api/mynofupublic/transactions', payload);
+      await apiClient.post('public/transactions', payload);
       
       Alert.alert('Sukses', 'Transaksi berhasil dicatat!');
       setCart({}); // Clear cart
