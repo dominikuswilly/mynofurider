@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   StyleSheet,
   View,
@@ -44,6 +45,15 @@ export default function TransactionEntryScreen() {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reload current category products on focus
+      if (activeCategory) {
+        fetchProducts(activeCategory);
+      }
+    }, [activeCategory])
+  );
 
   useEffect(() => {
     if (activeCategory) {
@@ -161,7 +171,7 @@ export default function TransactionEntryScreen() {
         })
       };
 
-      await apiClient.post('public/transactions', payload);
+      await apiClient.post('private/transaction/sales', payload);
       
       Alert.alert('Sukses', 'Transaksi berhasil dicatat!');
       setCart({}); // Clear cart
