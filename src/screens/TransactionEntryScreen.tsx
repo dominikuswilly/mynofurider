@@ -21,6 +21,7 @@ interface Product {
   name: string;
   price: number;
   category: string;
+  qty_current: number;
 }
 
 
@@ -90,7 +91,8 @@ export default function TransactionEntryScreen() {
           id: p.product_id,
           name: p.product_name,
           price: parseFloat(p.amount_sell) || 0,
-          category: category
+          category: category,
+          qty_current: p.qty_current || 0
         }));
 
         setActiveProducts(products);
@@ -113,9 +115,17 @@ export default function TransactionEntryScreen() {
   };
 
   const updateCart = (productId: string, delta: number) => {
+    const product = productRegistry[productId];
+    const maxQty = product?.qty_current || 0;
+    const currentQty = cart[productId] || 0;
+    
+    if (delta > 0 && currentQty >= maxQty) {
+      Alert.alert('Stok Terbatas', `Maaf, stok hanya tersedia ${maxQty} unit.`);
+      return;
+    }
+
     setCart(prev => {
-      const currentQty = prev[productId] || 0;
-      const newQty = Math.max(0, currentQty + delta);
+      const newQty = Math.max(0, (prev[productId] || 0) + delta);
       
       const newCart = { ...prev };
       if (newQty === 0) {
@@ -210,6 +220,7 @@ export default function TransactionEntryScreen() {
                   <View style={styles.productInfo}>
                     <Text style={styles.productName}>{product.name}</Text>
                     <Text style={styles.productPrice}>Rp {(product.price || 0).toLocaleString('id-ID')}</Text>
+                    <Text style={styles.productStock}>Stok: {product.qty_current}</Text>
                   </View>
                   <View style={styles.stepper}>
                     <TouchableOpacity 
@@ -410,6 +421,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  productStock: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   stepper: {
     flexDirection: 'row',
