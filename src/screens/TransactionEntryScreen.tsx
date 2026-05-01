@@ -158,15 +158,15 @@ export default function TransactionEntryScreen() {
     setLoading(true);
     try {
       const payload = {
-        total_amount: totalAmount,
+        amt_pay_total: totalAmount,
         payment_method: paymentMethod,
         items: Object.keys(cart).map(id => {
           const product = productRegistry[id];
           return {
             product_id: id,
-            name: product?.name,
-            price: product?.price,
-            quantity: cart[id]
+            product_name: product?.name,
+            qty_sell: cart[id],
+            amt_sell: product?.price
           };
         })
       };
