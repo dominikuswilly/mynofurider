@@ -4,11 +4,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LogOut } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SPACING } from '../constants/theme';
-import { storage } from '../utils/storage';
+import { useAuth } from '../context/AuthContext';
 
 export default function Header() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const { logout } = useAuth();
 
   const handleLogout = () => {
     Alert.alert(
@@ -20,8 +21,7 @@ export default function Header() {
           text: 'Keluar', 
           style: 'destructive',
           onPress: async () => {
-            await storage.clearTokens();
-            navigation.replace('Login');
+            await logout();
           }
         },
       ]
