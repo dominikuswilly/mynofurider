@@ -85,7 +85,8 @@ export default function TransactionEntryScreen() {
           await storage.saveTokens(response.data.access_token, refreshToken || '');
         }
 
-        const products = response.data.data.map((p: any) => ({
+        const rawData = response.data.data || [];
+        const products = rawData.map((p: any) => ({
           id: p.product_id,
           name: p.product_name,
           price: parseFloat(p.amount_sell) || 0,
