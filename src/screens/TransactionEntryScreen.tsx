@@ -11,6 +11,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { CreditCard, Banknote, Check, Plus, Minus } from 'lucide-react-native';
 import apiClient from '../api/client';
@@ -34,6 +35,7 @@ const PRODUCTS: Product[] = [
 ];
 
 export default function TransactionEntryScreen() {
+  const insets = useSafeAreaInsets();
   const [activeCategory, setActiveCategory] = useState('Kopi');
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qris'>('cash');
@@ -105,8 +107,10 @@ export default function TransactionEntryScreen() {
     };
   });
 
+  const FOOTER_HEIGHT = 220 + insets.bottom;
+
   return (
-    <SafeAreaView style={styles.container} testID="transaction-safe-area">
+    <SafeAreaView style={styles.container} testID="transaction-safe-area" edges={['left', 'right']}>
       <View style={styles.tabContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {categories.map((cat) => (
@@ -123,7 +127,7 @@ export default function TransactionEntryScreen() {
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.productList}>
+      <ScrollView contentContainerStyle={[styles.productList, { paddingBottom: FOOTER_HEIGHT + 20 }]}>
         <View style={styles.grid}>
           {filteredProducts.map((product) => (
             <View key={product.id} style={styles.productCard}>
@@ -151,7 +155,7 @@ export default function TransactionEntryScreen() {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
         <View style={styles.paymentSection}>
           <TouchableOpacity 
             style={[styles.paymentButton, paymentMethod === 'cash' && styles.paymentButtonActive]}

@@ -47,7 +47,7 @@ export default function BalanceHistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} testID="balance-safe-area">
+    <SafeAreaView style={styles.container} testID="balance-safe-area" edges={['left', 'right']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.headerTitle}>Dompet Rider</Text>
         

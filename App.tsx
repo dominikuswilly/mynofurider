@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'react-native';
 import { LayoutDashboard, ReceiptText, PackageSearch, Wallet } from 'lucide-react-native';
 
@@ -18,6 +18,8 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -26,8 +28,8 @@ function MainTabs() {
         tabBarStyle: {
           backgroundColor: '#0F172A', // Dark navy to match theme
           borderTopWidth: 0,
-          height: 70,
-          paddingBottom: 10,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
           paddingTop: 10,
           elevation: 10,
           shadowColor: '#000',
@@ -69,7 +71,7 @@ function MainTabs() {
 function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor="#C6FF00" />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       <NavigationContainer>
         <Stack.Navigator
           initialRouteName="Login"

@@ -85,7 +85,7 @@ export default function InventoryScreen() {
   const itemsToRequest = requestItems.filter(item => parseInt(item.request) > 0);
 
   return (
-    <SafeAreaView style={styles.container} testID="inventory-safe-area">
+    <SafeAreaView style={styles.container} testID="inventory-safe-area" edges={['left', 'right']}>
       <View style={styles.tabContainer}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'request' && styles.tabActive]}

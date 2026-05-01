@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LogOut } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { COLORS, SPACING } from '../constants/theme';
@@ -7,6 +8,7 @@ import { storage } from '../utils/storage';
 
 export default function Header() {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
 
   const handleLogout = () => {
     Alert.alert(
@@ -27,7 +29,7 @@ export default function Header() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + SPACING.md }]}>
       <Text style={styles.title}>Nofu Rider</Text>
       <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
         <LogOut size={20} color={COLORS.error} />
@@ -43,11 +45,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
+    paddingBottom: SPACING.md,
     backgroundColor: '#0F172A', // Dark navy
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    // paddingTop: , // Adjust for status bar/safe area
   },
   title: {
     fontSize: 20,

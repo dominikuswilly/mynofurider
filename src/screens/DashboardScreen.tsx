@@ -13,7 +13,7 @@ import { ArrowUpRight, Hammer } from 'lucide-react-native';
 export default function DashboardScreen({ navigation }: any) {
 
   return (
-    <SafeAreaView style={styles.container} testID="dashboard-safe-area">
+    <SafeAreaView style={styles.container} testID="dashboard-safe-area" edges={['left', 'right']}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View>
