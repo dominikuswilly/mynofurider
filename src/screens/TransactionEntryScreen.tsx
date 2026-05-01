@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -24,25 +24,48 @@ interface Product {
 }
 
 const PRODUCTS: Product[] = [
-  { id: '1', name: 'ESPRESSO SINGLE', price: 15000, category: 'Kopi' },
-  { id: '2', name: 'AMERICANO ICE', price: 22000, category: 'Kopi' },
-  { id: '3', name: 'CAFE LATTE', price: 28000, category: 'Kopi' },
-  { id: '4', name: 'CAPPUCCINO', price: 26000, category: 'Kopi' },
-  { id: '5', name: 'SIGNATURE CHOCO', price: 25000, category: 'Cokelat' },
-  { id: '6', name: 'DARK COCOA', price: 27000, category: 'Cokelat' },
-  { id: '7', name: 'EARL GREY TEA', price: 20000, category: 'Teh' },
-  { id: '8', name: 'LEMON TEA ICE', price: 18000, category: 'Teh' },
+  { id: '1', name: 'ESPRESSO SINGLE', price: 15000, category: 'KOPI' },
+  { id: '2', name: 'AMERICANO ICE', price: 22000, category: 'KOPI' },
+  { id: '3', name: 'CAFE LATTE', price: 28000, category: 'KOPI' },
+  { id: '4', name: 'CAPPUCCINO', price: 26000, category: 'KOPI' },
+  { id: '5', name: 'SIGNATURE CHOCO', price: 25000, category: 'COKELAT' },
+  { id: '6', name: 'DARK COCOA', price: 27000, category: 'COKELAT' },
+  { id: '7', name: 'EARL GREY TEA', price: 20000, category: 'TEH' },
+  { id: '8', name: 'LEMON TEA ICE', price: 18000, category: 'TEH' },
 ];
 
 export default function TransactionEntryScreen() {
   const insets = useSafeAreaInsets();
-  const [activeCategory, setActiveCategory] = useState('Kopi');
+  const [activeCategory, setActiveCategory] = useState('');
+  const [categories, setCategories] = useState<string[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qris'>('cash');
   const [loading, setLoading] = useState(false);
   const [showReview, setShowReview] = useState(false);
 
-  const categories = ['Kopi', 'Cokelat', 'Teh', 'Snack'];
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await apiClient.get('private/inventory/categories');
+      if (response.data && response.data.status === 'success') {
+        console.log(response.data.data);
+        const catNames = response.data.data.map((c: any) => c.name);
+        setCategories(catNames);
+        if (catNames.length > 0) {
+          setActiveCategory(catNames[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      Alert.alert('Error', 'Gagal memuat kategori produk');
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
 
   const updateCart = (productId: string, delta: number) => {
     setCart(prev => {
@@ -112,19 +135,23 @@ export default function TransactionEntryScreen() {
   return (
     <SafeAreaView style={styles.container} testID="transaction-safe-area" edges={['left', 'right']}>
       <View style={styles.tabContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.tab, activeCategory === cat && styles.tabActive]}
-              onPress={() => setActiveCategory(cat)}
-            >
-              <Text style={[styles.tabText, activeCategory === cat && styles.tabTextActive]}>
-                {cat.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        {categoriesLoading ? (
+          <ActivityIndicator color={COLORS.primary} style={{ paddingVertical: 10 }} />
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {categories.map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={[styles.tab, activeCategory === cat && styles.tabActive]}
+                onPress={() => setActiveCategory(cat)}
+              >
+                <Text style={[styles.tabText, activeCategory === cat && styles.tabTextActive]}>
+                  {cat.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={[styles.productList, { paddingBottom: FOOTER_HEIGHT + 20 }]}>

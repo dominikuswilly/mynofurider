@@ -27,9 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (accessToken || refreshToken) {
         try {
           // Introspect token
-          const response = await apiClient.get('public/introspect', {
-            headers: refreshToken ? { 'X-Refresh-Token': refreshToken } : {}
-          });
+          const response = await apiClient.get('public/introspect');
           
           if (response.data) {
             if (response.data.access_token) {

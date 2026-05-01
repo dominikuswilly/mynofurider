@@ -10,13 +10,20 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor to add the access token to headers
+// Request interceptor to add the access token and refresh token to headers
 apiClient.interceptors.request.use(
   async (config) => {
-    const token = await storage.getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const accessToken = await storage.getAccessToken();
+    const refreshToken = await storage.getRefreshToken();
+
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
+    
+    if (refreshToken) {
+      config.headers['X-Refresh-Token'] = refreshToken;
+    }
+
     return config;
   },
   (error) => {
