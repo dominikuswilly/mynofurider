@@ -14,6 +14,7 @@ import DashboardScreen from './src/screens/DashboardScreen';
 import TransactionEntryScreen from './src/screens/TransactionEntryScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import BalanceHistoryScreen from './src/screens/BalanceHistoryScreen';
+import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 import Header from './src/components/Header';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 
@@ -93,7 +94,10 @@ function Navigation() {
         {isLoggedIn ? (
           <Stack.Screen name="Main" component={MainTabs} />
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

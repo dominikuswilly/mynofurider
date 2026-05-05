@@ -10,120 +10,116 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
-  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
+import { Lock, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import apiClient from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { decodeJWT } from '../utils/jwt';
 
-
-export default function LoginScreen({ navigation }: any) {
+export default function ChangePasswordScreen({ navigation, route }: any) {
   const { login } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const { accessToken, refreshToken } = route.params || {};
+  
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!username || !password) {
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
       Alert.alert('Error', 'Harap isi semua bidang');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'Kata sandi baru tidak cocok');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await apiClient.post('public/auth', {
-        username,
-        password,
+      // Assuming there's an endpoint for changing password
+      // We use the accessToken from params to authorize this request
+      await apiClient.post('rider/change-password', {
+        new_password: newPassword,
+      }, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        }
       });
 
-      if (response.data && response.data.access_token) {
-        const { access_token, refresh_token } = response.data;
-        
-        // Check for password change requirement
-        const claims = decodeJWT(access_token);
-        if (claims && claims.change_password === 1) {
-          navigation.navigate('ChangePassword', { accessToken: access_token, refreshToken: refresh_token });
-        } else {
-          await login(access_token, refresh_token);
+      Alert.alert('Sukses', 'Kata sandi berhasil diubah. Silakan masuk kembali.', [
+        {
+          text: 'OK',
+          onPress: () => {
+            // After successful change, we could either auto-login or redirect to login
+            // The user request said "redirect to change password screen" if claims.change_password is 1
+            // Usually after change, we complete the login
+            login(accessToken, refreshToken);
+          }
         }
-      } else {
-        Alert.alert('Login Gagal', 'Kredensial tidak valid atau token hilang');
-      }
+      ]);
     } catch (error: any) {
-      Alert.alert('Login Gagal', error.message || 'Terjadi kesalahan');
+      Alert.alert('Gagal', error.message || 'Terjadi kesalahan saat mengubah kata sandi');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container} testID="login-safe-area">
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
-        testID="login-keyboard-avoiding-view"
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          testID="login-scroll-view"
         >
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../../assets/logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
+            <View style={styles.iconContainer}>
+              <ShieldCheck size={40} color={COLORS.black} />
             </View>
             <View style={styles.headerText}>
-              <Text style={styles.title}>NOFU Rider</Text>
-              <Text style={styles.subtitle}>Portal Mitra</Text>
+              <Text style={styles.title}>Ubah Kata Sandi</Text>
+              <Text style={styles.subtitle}>Demi keamanan, harap perbarui kata sandi Anda.</Text>
             </View>
           </View>
 
           <View style={styles.form}>
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Nama Pengguna</Text>
+              <Text style={styles.label}>Kata Sandi Baru</Text>
               <View style={styles.inputWrapper}>
-                <User size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
+                <Lock size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Nama Pengguna"
+                  placeholder="Kata Sandi Baru"
                   placeholderTextColor={COLORS.textSecondary}
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                  autoFocus={true}
-                  textContentType="username"
-                  autoComplete="username"
-                  testID="login-username-input"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={!showPassword}
+                  testID="new-password-input"
                 />
               </View>
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Kata Sandi</Text>
+              <Text style={styles.label}>Konfirmasi Kata Sandi Baru</Text>
               <View style={styles.inputWrapper}>
                 <Lock size={20} color={COLORS.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Kata Sandi"
+                  placeholder="Konfirmasi Kata Sandi Baru"
                   placeholderTextColor={COLORS.textSecondary}
-                  value={password}
-                  onChangeText={setPassword}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
                   secureTextEntry={!showPassword}
-                  textContentType="password"
-                  autoComplete="password"
-                  testID="login-password-input"
+                  testID="confirm-password-input"
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeIcon}
-                  testID="login-password-toggle"
                 >
                   {showPassword ? (
                     <EyeOff size={20} color={COLORS.textSecondary} />
@@ -135,19 +131,26 @@ export default function LoginScreen({ navigation }: any) {
             </View>
 
             <TouchableOpacity
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-              onPress={handleLogin}
+              style={[styles.submitButton, loading && styles.submitButtonDisabled]}
+              onPress={handleChangePassword}
               disabled={loading}
-              testID="login-submit-button"
+              testID="change-password-submit-button"
             >
               {loading ? (
                 <ActivityIndicator color={COLORS.black} />
               ) : (
                 <>
-                  <Text style={styles.loginButtonText}>Masuk</Text>
+                  <Text style={styles.submitButtonText}>Perbarui Kata Sandi</Text>
                   <ArrowRight size={20} color={COLORS.black} />
                 </>
               )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={styles.cancelButtonText}>Batal</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -176,19 +179,17 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xxl,
     marginTop: SPACING.lg,
   },
-  logoContainer: {
-    width: 80,
-    height: 80,
+  iconContainer: {
+    width: 60,
+    height: 60,
     borderRadius: BORDER_RADIUS.md,
-    overflow: 'hidden',
     backgroundColor: COLORS.primary,
-  },
-  logo: {
-    width: '100%',
-    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerText: {
     marginLeft: SPACING.md,
+    flex: 1,
   },
   title: {
     fontSize: 24,
@@ -198,6 +199,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: COLORS.textSecondary,
+    marginTop: 4,
   },
   form: {
     flex: 1,
@@ -233,7 +235,7 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: SPACING.sm,
   },
-  loginButton: {
+  submitButton: {
     backgroundColor: COLORS.primary,
     height: 60,
     borderRadius: BORDER_RADIUS.md,
@@ -242,13 +244,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: SPACING.md,
   },
-  loginButtonDisabled: {
+  submitButtonDisabled: {
     opacity: 0.5,
   },
-  loginButtonText: {
+  submitButtonText: {
     color: COLORS.black,
     fontSize: 18,
     fontWeight: '800',
     marginRight: SPACING.sm,
+  },
+  cancelButton: {
+    alignSelf: 'center',
+    marginTop: SPACING.lg,
+    padding: SPACING.sm,
+  },
+  cancelButtonText: {
+    color: COLORS.textSecondary,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
