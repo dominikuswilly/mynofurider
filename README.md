@@ -88,15 +88,21 @@ To release your app to the Google Play Store, you need to generate a signed Andr
 
 ## 1. Setup Signing Key
 
-The project is already configured to use a release key. Ensure you have the `my-release-key.keystore` file in the `android/app/` directory.
+The project is already configured to use a release key. The `my-release-key.keystore` file should be located in the `android/app/` directory.
 
-The signing credentials should be set in `android/gradle.properties`:
+If you need to regenerate the key, run this command from `android/app/`:
+
+```powershell
+keytool -genkeypair -v -keystore my-release-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000 -storepass jagainoke -keypass jagainoke -dname "CN=MyNofu Rider, OU=Mobile, O=MyNofu, L=Jakarta, S=Jakarta, C=ID"
+```
+
+The signing credentials are set in `android/gradle.properties`:
 
 ```properties
 MYNOFU_RELEASE_STORE_FILE=my-release-key.keystore
 MYNOFU_RELEASE_KEY_ALIAS=my-key-alias
-MYNOFU_RELEASE_STORE_PASSWORD=*****
-MYNOFU_RELEASE_KEY_PASSWORD=*****
+MYNOFU_RELEASE_STORE_PASSWORD=jagainoke
+MYNOFU_RELEASE_KEY_PASSWORD=jagainoke
 ```
 
 ## 2. Generate the Release Bundle
