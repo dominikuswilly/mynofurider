@@ -16,8 +16,10 @@ apiClient.interceptors.request.use(
   async (config) => {
     const accessToken = await storage.getAccessToken();
 
-    // Add unique Request ID for tracing
-    config.headers['X-Request-ID'] = generateUUID();
+    // Add unique Request ID for tracing if not already present
+    if (!config.headers['x-request-id']) {
+      config.headers['x-request-id'] = generateUUID();
+    }
 
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -50,7 +52,7 @@ apiClient.interceptors.response.use(
             headers: {
               'X-Refresh-Token': refreshToken,
               'Authorization': `Bearer ${accessToken}`,
-              'X-Request-ID': generateUUID(),
+              'x-request-id': generateUUID(),
             },
           });
 

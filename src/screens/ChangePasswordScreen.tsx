@@ -39,9 +39,8 @@ export default function ChangePasswordScreen({ navigation, route }: any) {
 
     setLoading(true);
     try {
-      // Assuming there's an endpoint for changing password
-      // We use the accessToken from params to authorize this request
-      await apiClient.post('rider/change-password', {
+      // Hit the private/change-password endpoint using PATCH
+      await apiClient.patch('private/change-password', {
         new_password: newPassword,
       }, {
         headers: {
@@ -49,7 +48,7 @@ export default function ChangePasswordScreen({ navigation, route }: any) {
         }
       });
 
-      Alert.alert('Sukses', 'Kata sandi berhasil diubah. Silakan masuk kembali.', [
+      Alert.alert('Sukses', 'Kata sandi berhasil diubah.', [
         {
           text: 'OK',
           onPress: () => {
