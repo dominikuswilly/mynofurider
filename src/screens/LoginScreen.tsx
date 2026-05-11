@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import apiClient from '../api/client';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { decodeJWT } from '../utils/jwt';
 
@@ -48,7 +49,26 @@ export default function LoginScreen({ navigation }: any) {
         if (claims && claims.change_password === 1) {
           navigation.navigate('ChangePassword', { accessToken: access_token, refreshToken: refresh_token });
         } else {
-          await login(access_token, refresh_token);
+          // Check inventory confirmation
+          try {
+            const checkRes = await axios.get('https://apinofudev.bengkelfajarjaya.com/api/mynofu/private/inventory/check-confirmation', {
+              headers: { Authorization: `Bearer ${access_token}` }
+            });
+
+            if (checkRes.data && checkRes.data.is_confirmed === false && checkRes.data.items?.length > 0) {
+              navigation.navigate('InventoryConfirmation', { 
+                items: checkRes.data.items, 
+                accessToken: access_token, 
+                refreshToken: refresh_token 
+              });
+            } else {
+              await login(access_token, refresh_token);
+            }
+          } catch (checkError) {
+            console.error('Inventory check failed:', checkError);
+            // If check fails, fallback to normal login
+            await login(access_token, refresh_token);
+          }
         }
       } else {
         Alert.alert('Login Gagal', 'Kredensial tidak valid atau token hilang');

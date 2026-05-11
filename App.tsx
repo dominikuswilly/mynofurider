@@ -15,6 +15,7 @@ import TransactionEntryScreen from './src/screens/TransactionEntryScreen';
 import InventoryScreen from './src/screens/InventoryScreen';
 import BalanceHistoryScreen from './src/screens/BalanceHistoryScreen';
 import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
+import InventoryConfirmationScreen from './src/screens/InventoryConfirmationScreen';
 import Header from './src/components/Header';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 
@@ -97,6 +98,7 @@ function Navigation() {
           <>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+            <Stack.Screen name="InventoryConfirmation" component={InventoryConfirmationScreen} />
           </>
         )}
       </Stack.Navigator>

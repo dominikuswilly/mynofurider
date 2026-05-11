@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Lock, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import apiClient from '../api/client';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
 export default function ChangePasswordScreen({ navigation, route }: any) {
@@ -51,11 +52,26 @@ export default function ChangePasswordScreen({ navigation, route }: any) {
       Alert.alert('Sukses', 'Kata sandi berhasil diubah.', [
         {
           text: 'OK',
-          onPress: () => {
-            // After successful change, we could either auto-login or redirect to login
-            // The user request said "redirect to change password screen" if claims.change_password is 1
-            // Usually after change, we complete the login
-            login(accessToken, refreshToken);
+          onPress: async () => {
+            // Check inventory confirmation
+            try {
+              const checkRes = await axios.get('https://apinofudev.bengkelfajarjaya.com/api/mynofu/private/inventory/check-confirmation', {
+                headers: { Authorization: `Bearer ${accessToken}` }
+              });
+
+              if (checkRes.data && checkRes.data.is_confirmed === false && checkRes.data.items?.length > 0) {
+                navigation.navigate('InventoryConfirmation', { 
+                  items: checkRes.data.items, 
+                  accessToken: accessToken, 
+                  refreshToken: refreshToken 
+                });
+              } else {
+                login(accessToken, refreshToken);
+              }
+            } catch (checkError) {
+              console.error('Inventory check failed:', checkError);
+              login(accessToken, refreshToken);
+            }
           }
         }
       ]);
