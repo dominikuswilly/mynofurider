@@ -5,15 +5,11 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
-  Alert,
-  Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Check, Package, AlertCircle, ArrowRight, X } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Check, Package, AlertCircle, X, ArrowLeft } from 'lucide-react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
-import apiClient from '../api/client';
 
 interface InventoryItem {
   product_id: string;
@@ -24,9 +20,9 @@ interface InventoryItem {
 }
 
 export default function InventoryConfirmationScreen({ route, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { items, accessToken, refreshToken } = route.params;
   const { login } = useAuth();
-  const [loading, setLoading] = useState(false);
   const [itemStatuses, setItemStatuses] = useState<Record<string, 'accepted' | 'rejected'>>(
     items.reduce((acc: any, item: InventoryItem) => ({ ...acc, [item.product_id]: 'accepted' }), {})
   );
@@ -38,33 +34,6 @@ export default function InventoryConfirmationScreen({ route, navigation }: any) 
     }));
   };
 
-  const handleConfirm = async () => {
-    setLoading(true);
-    try {
-      // Endpoint for confirmation - assuming private/inventory/confirm
-      // Using axios directly or apiClient with temporary token if needed
-      // But since we are not 'logged in' in the context yet, we use the token from params
-      await apiClient.post('private/inventory/confirm', {}, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      
-      // After successful confirmation, proceed to login
-      await login(accessToken, refreshToken);
-    } catch (error: any) {
-      console.error('Confirmation error:', error);
-      // Even if confirmation fails, we might want to let them login or show error
-      Alert.alert(
-        'Konfirmasi Gagal',
-        error.response?.data?.message || 'Terjadi kesalahan saat mengonfirmasi inventaris.',
-        [
-          { text: 'Coba Lagi', style: 'default' },
-          { text: 'Masuk Saja', onPress: () => login(accessToken, refreshToken) }
-        ]
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatCurrency = (value: string) => {
     return new Intl.NumberFormat('id-ID', {
@@ -75,7 +44,18 @@ export default function InventoryConfirmationScreen({ route, navigation }: any) 
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <View style={[styles.headerBar, { paddingTop: insets.top }]}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <ArrowLeft size={24} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Konfirmasi Stok</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View style={styles.iconContainer}>
@@ -154,23 +134,7 @@ export default function InventoryConfirmationScreen({ route, navigation }: any) 
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.confirmButton, loading && styles.disabledButton]}
-          onPress={handleConfirm}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color={COLORS.black} />
-          ) : (
-            <>
-              <Text style={styles.confirmButtonText}>Konfirmasi & Lanjutkan</Text>
-              <Check size={20} color={COLORS.black} />
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -178,6 +142,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.md,
+    paddingBottom: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  backButton: {
+    padding: SPACING.sm,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.text,
   },
   header: {
     padding: SPACING.xl,
@@ -336,28 +318,5 @@ const styles = StyleSheet.create({
   },
   acceptButtonTextActive: {
     color: COLORS.black,
-  },
-  footer: {
-    padding: SPACING.lg,
-    backgroundColor: COLORS.surface,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  confirmButton: {
-    backgroundColor: COLORS.primary,
-    height: 60,
-    borderRadius: BORDER_RADIUS.md,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  confirmButtonText: {
-    color: COLORS.black,
-    fontSize: 16,
-    fontWeight: '800',
   },
 });
