@@ -71,10 +71,10 @@ export default function TransactionEntryScreen() {
           await storage.saveTokens(response.data.access_token, refreshToken || '');
         }
 
-        const catNames = response.data.data.map((c: any) => c.name);
+        const catNames = ['SEMUA', ...response.data.data.map((c: any) => c.name)];
         setCategories(catNames);
         if (catNames.length > 0) {
-          setActiveCategory(catNames[0]);
+          setActiveCategory('SEMUA');
         }
       }
     } catch (error) {
@@ -88,7 +88,8 @@ export default function TransactionEntryScreen() {
   const fetchProducts = async (category: string) => {
     setProductsLoading(true);
     try {
-      const response = await apiClient.get(`private/inventories/${category}`);
+      const endpoint = category === 'SEMUA' ? 'private/inventories' : `private/inventories/${category}`;
+      const response = await apiClient.get(endpoint);
       if (response.data && response.data.status === 'success') {
         // Save new access token if provided
         if (response.data.access_token) {
