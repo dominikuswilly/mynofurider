@@ -5,11 +5,14 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check, Package, AlertCircle, X, ArrowLeft } from 'lucide-react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import apiClient from '../api/client';
 
 interface InventoryItem {
   product_id: string;
@@ -21,17 +24,73 @@ interface InventoryItem {
 
 export default function InventoryConfirmationScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
-  const { items, accessToken, refreshToken } = route.params;
+  const { items: initialItems, accessToken, refreshToken } = route.params;
   const { login } = useAuth();
-  const [itemStatuses, setItemStatuses] = useState<Record<string, 'accepted' | 'rejected'>>(
-    items.reduce((acc: any, item: InventoryItem) => ({ ...acc, [item.product_id]: 'accepted' }), {})
+  
+  const [items, setItems] = useState<InventoryItem[]>(initialItems);
+  const [itemStatuses, setItemStatuses] = useState<Record<string, 'accepted' | 'rejected' | 'pending'>>(
+    initialItems.reduce((acc: any, item: InventoryItem) => ({ ...acc, [item.product_id]: 'pending' }), {})
   );
+  const [updatingItems, setUpdatingItems] = useState<Record<string, boolean>>({});
 
-  const toggleStatus = (productId: string, status: 'accepted' | 'rejected') => {
-    setItemStatuses(prev => ({
-      ...prev,
-      [productId]: status
-    }));
+  const fetchInventory = async () => {
+    try {
+      const response = await apiClient.get('private/inventory/check-confirmation', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      if (response.data && response.data.status === 'success') {
+        const newItems = response.data.items || [];
+        setItems(newItems);
+        
+        // Update statuses based on new data if needed
+        // For now, keep as is or check if we should reset pending ones
+        if (newItems.length === 0 || response.data.is_confirmed === true) {
+          await login(accessToken, refreshToken);
+        }
+      }
+    } catch (error) {
+      console.error('Fetch inventory error:', error);
+    }
+  };
+
+  const toggleStatus = async (productId: string, status: 'accepted' | 'rejected') => {
+    if (updatingItems[productId]) return;
+
+    setUpdatingItems(prev => ({ ...prev, [productId]: true }));
+    try {
+      await apiClient.post('private/inventory/confirm', {
+        product_id: productId,
+        status: status
+      }, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      setItemStatuses(prev => ({
+        ...prev,
+        [productId]: status
+      }));
+
+      // Refresh data after success
+      await fetchInventory();
+
+      // Check if all items are confirmed (this might now be handled by fetchInventory's check)
+      const newStatuses = { ...itemStatuses, [productId]: status };
+      const allConfirmed = items.every((item: InventoryItem) => newStatuses[item.product_id] !== 'pending');
+      
+      if (allConfirmed) {
+        // Automatically proceed to login if all items are confirmed
+        await login(accessToken, refreshToken);
+      }
+    } catch (error: any) {
+      console.error('Confirmation error:', error);
+      Alert.alert(
+        'Gagal',
+        error.response?.data?.message || 'Gagal memperbarui status barang.'
+      );
+    } finally {
+      setUpdatingItems(prev => ({ ...prev, [productId]: false }));
+    }
   };
 
 
@@ -101,31 +160,47 @@ export default function InventoryConfirmationScreen({ route, navigation }: any) 
                     style={[
                       styles.actionButton,
                       styles.rejectButton,
-                      itemStatuses[item.product_id] === 'rejected' && styles.rejectButtonActive
+                      itemStatuses[item.product_id] === 'rejected' && styles.rejectButtonActive,
+                      updatingItems[item.product_id] && styles.disabledButton
                     ]}
                     onPress={() => toggleStatus(item.product_id, 'rejected')}
+                    disabled={updatingItems[item.product_id]}
                   >
-                    <X size={16} color={itemStatuses[item.product_id] === 'rejected' ? COLORS.white : COLORS.error} />
-                    <Text style={[
-                      styles.actionButtonText,
-                      itemStatuses[item.product_id] === 'rejected' && styles.actionButtonTextActive
-                    ]}>Tolak</Text>
+                    {updatingItems[item.product_id] && itemStatuses[item.product_id] !== 'rejected' ? (
+                      <ActivityIndicator size="small" color={COLORS.error} />
+                    ) : (
+                      <>
+                        <X size={16} color={itemStatuses[item.product_id] === 'rejected' ? COLORS.white : COLORS.error} />
+                        <Text style={[
+                          styles.actionButtonText,
+                          itemStatuses[item.product_id] === 'rejected' && styles.actionButtonTextActive
+                        ]}>Tolak</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[
                       styles.actionButton,
                       styles.acceptButton,
-                      itemStatuses[item.product_id] === 'accepted' && styles.acceptButtonActive
+                      itemStatuses[item.product_id] === 'accepted' && styles.acceptButtonActive,
+                      updatingItems[item.product_id] && styles.disabledButton
                     ]}
                     onPress={() => toggleStatus(item.product_id, 'accepted')}
+                    disabled={updatingItems[item.product_id]}
                   >
-                    <Check size={16} color={itemStatuses[item.product_id] === 'accepted' ? COLORS.black : COLORS.primary} />
-                    <Text style={[
-                      styles.actionButtonText,
-                      styles.acceptButtonText,
-                      itemStatuses[item.product_id] === 'accepted' && styles.acceptButtonTextActive
-                    ]}>Terima</Text>
+                    {updatingItems[item.product_id] && itemStatuses[item.product_id] !== 'accepted' ? (
+                      <ActivityIndicator size="small" color={COLORS.primary} />
+                    ) : (
+                      <>
+                        <Check size={16} color={itemStatuses[item.product_id] === 'accepted' ? COLORS.black : COLORS.primary} />
+                        <Text style={[
+                          styles.actionButtonText,
+                          styles.acceptButtonText,
+                          itemStatuses[item.product_id] === 'accepted' && styles.acceptButtonTextActive
+                        ]}>Terima</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -318,5 +393,8 @@ const styles = StyleSheet.create({
   },
   acceptButtonTextActive: {
     color: COLORS.black,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });
