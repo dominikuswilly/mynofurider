@@ -10,7 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Check, Package, AlertCircle, ArrowRight } from 'lucide-react-native';
+import { Check, Package, AlertCircle, ArrowRight, X } from 'lucide-react-native';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import apiClient from '../api/client';
@@ -27,6 +27,16 @@ export default function InventoryConfirmationScreen({ route, navigation }: any) 
   const { items, accessToken, refreshToken } = route.params;
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [itemStatuses, setItemStatuses] = useState<Record<string, 'accepted' | 'rejected'>>(
+    items.reduce((acc: any, item: InventoryItem) => ({ ...acc, [item.product_id]: 'accepted' }), {})
+  );
+
+  const toggleStatus = (productId: string, status: 'accepted' | 'rejected') => {
+    setItemStatuses(prev => ({
+      ...prev,
+      [productId]: status
+    }));
+  };
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -66,41 +76,82 @@ export default function InventoryConfirmationScreen({ route, navigation }: any) 
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.iconContainer}>
-          <Package size={32} color={COLORS.primary} />
-        </View>
-        <Text style={styles.title}>Konfirmasi Inventaris</Text>
-        <Text style={styles.subtitle}>
-          Mohon periksa dan konfirmasi stok barang yang Anda bawa hari ini.
-        </Text>
-      </View>
-
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.alertBox}>
-          <AlertCircle size={20} color={COLORS.primary} />
-          <Text style={styles.alertText}>
-            Pastikan jumlah barang sesuai dengan fisik yang Anda terima.
+        <View style={styles.header}>
+          <View style={styles.iconContainer}>
+            <Package size={32} color={COLORS.primary} />
+          </View>
+          <Text style={styles.title}>Konfirmasi Inventaris</Text>
+          <Text style={styles.subtitle}>
+            Mohon periksa dan konfirmasi stok barang yang Anda bawa hari ini.
           </Text>
         </View>
 
-        {items.map((item: InventoryItem) => (
-          <View key={item.product_id} style={styles.itemCard}>
-            <View style={styles.itemMain}>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.product_name}</Text>
-                <Text style={styles.itemPrice}>{formatCurrency(item.amount_sell)}</Text>
-              </View>
-              <View style={styles.qtyBadge}>
-                <Text style={styles.qtyLabel}>Stok</Text>
-                <Text style={styles.qtyValue}>{item.qty_current}</Text>
-              </View>
-            </View>
-            <View style={styles.itemFooter}>
-              <Text style={styles.baseQty}>Stok Awal: {item.qty_base}</Text>
-            </View>
+        <View style={styles.mainContent}>
+          <View style={styles.alertBox}>
+            <AlertCircle size={20} color={COLORS.primary} />
+            <Text style={styles.alertText}>
+              Pastikan jumlah barang sesuai dengan fisik yang Anda terima.
+            </Text>
           </View>
-        ))}
+
+          {items.map((item: InventoryItem) => (
+            <View 
+              key={item.product_id} 
+              style={[
+                styles.itemCard,
+                itemStatuses[item.product_id] === 'rejected' && styles.itemCardRejected
+              ]}
+            >
+              <View style={styles.itemMain}>
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemName}>{item.product_name}</Text>
+                  <Text style={styles.itemPrice}>{formatCurrency(item.amount_sell)}</Text>
+                </View>
+                <View style={styles.qtyBadge}>
+                  <Text style={styles.qtyLabel}>Stok</Text>
+                  <Text style={styles.qtyValue}>{item.qty_current}</Text>
+                </View>
+              </View>
+              <View style={styles.itemFooter}>
+                <Text style={styles.baseQty}>Stok Awal: {item.qty_base}</Text>
+                
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      styles.rejectButton,
+                      itemStatuses[item.product_id] === 'rejected' && styles.rejectButtonActive
+                    ]}
+                    onPress={() => toggleStatus(item.product_id, 'rejected')}
+                  >
+                    <X size={16} color={itemStatuses[item.product_id] === 'rejected' ? COLORS.white : COLORS.error} />
+                    <Text style={[
+                      styles.actionButtonText,
+                      itemStatuses[item.product_id] === 'rejected' && styles.actionButtonTextActive
+                    ]}>Tolak</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.actionButton,
+                      styles.acceptButton,
+                      itemStatuses[item.product_id] === 'accepted' && styles.acceptButtonActive
+                    ]}
+                    onPress={() => toggleStatus(item.product_id, 'accepted')}
+                  >
+                    <Check size={16} color={itemStatuses[item.product_id] === 'accepted' ? COLORS.black : COLORS.primary} />
+                    <Text style={[
+                      styles.actionButtonText,
+                      styles.acceptButtonText,
+                      itemStatuses[item.product_id] === 'accepted' && styles.acceptButtonTextActive
+                    ]}>Terima</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ))}
+        </View>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -161,6 +212,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
+  },
+  mainContent: {
     padding: SPACING.lg,
   },
   alertBox: {
@@ -236,6 +290,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textSecondary,
     fontWeight: '600',
+  },
+  itemCardRejected: {
+    borderColor: COLORS.error,
+    backgroundColor: 'rgba(239, 68, 68, 0.05)',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.md,
+    borderWidth: 1,
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  rejectButton: {
+    borderColor: COLORS.error,
+    backgroundColor: 'transparent',
+  },
+  rejectButtonActive: {
+    backgroundColor: COLORS.error,
+  },
+  acceptButton: {
+    borderColor: COLORS.primary,
+    backgroundColor: 'transparent',
+  },
+  acceptButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  actionButtonTextActive: {
+    color: COLORS.white,
+  },
+  acceptButtonText: {
+    color: COLORS.primary,
+  },
+  acceptButtonTextActive: {
+    color: COLORS.black,
   },
   footer: {
     padding: SPACING.lg,
