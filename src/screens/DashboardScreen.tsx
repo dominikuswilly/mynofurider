@@ -1,16 +1,61 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { ArrowUpRight, Hammer } from 'lucide-react-native';
+import { storage } from '../utils/storage';
+import { decodeJWT } from '../utils/jwt';
+import apiClient from '../api/client';
 
 export default function DashboardScreen({ navigation }: any) {
+  const [riderName, setRiderName] = useState('Rider');
+  const [totalEarnings, setTotalEarnings] = useState('Rp 0');
+  const [loading, setLoading] = useState(true);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(value).replace(/,00$/, '');
+  };
+
+  const loadRiderData = async () => {
+    try {
+      const token = await storage.getAccessToken();
+      if (token) {
+        const claims = decodeJWT(token);
+        if (claims && claims.name) {
+          setRiderName(claims.name);
+        }
+      }
+
+      const response = await apiClient.get('private/wallet/summary');
+      if (response.data) {
+        const earningsVal = response.data.total_earnings || 0;
+        setTotalEarnings(formatCurrency(earningsVal));
+      }
+    } catch (error) {
+      console.error('Dashboard load error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRiderData();
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadRiderData();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container} testID="dashboard-safe-area" edges={['left', 'right']}>
@@ -18,7 +63,7 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={styles.header}>
           <View>
             <Text style={styles.welcomeText}>Selamat Pagi,</Text>
-            <Text style={styles.riderName}>Dominikus Willy</Text>
+            <Text style={styles.riderName}>{riderName}</Text>
           </View>
           <View style={styles.statusBadge}>
             <View style={styles.statusDot} />
@@ -29,10 +74,14 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={styles.summaryCard}>
           <View style={styles.summaryInfo}>
             <Text style={styles.summaryLabel}>Total Pendapatan</Text>
-            <Text style={styles.summaryValue}>Rp 1.280.000</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color={COLORS.primary} style={{ alignSelf: 'flex-start', marginVertical: SPACING.sm }} />
+            ) : (
+              <Text style={styles.summaryValue}>{totalEarnings}</Text>
+            )}
             <View style={styles.trendBadge}>
               <ArrowUpRight size={14} color={COLORS.success} />
-              <Text style={styles.trendText}>+12.5% minggu ini</Text>
+              <Text style={styles.trendText}>Komisi harian terakumulasi</Text>
             </View>
           </View>
           <TouchableOpacity 

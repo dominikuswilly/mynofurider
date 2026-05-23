@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { CreditCard, Banknote, Check, Plus, Minus } from 'lucide-react-native';
 import apiClient from '../api/client';
+import { storage } from '../utils/storage';
 
 interface Product {
   id: string;
