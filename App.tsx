@@ -3,8 +3,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StatusBar, View, ActivityIndicator } from 'react-native';
-import { LayoutDashboard, ReceiptText, PackageSearch, Wallet } from 'lucide-react-native';
+import { StatusBar, View, Animated, Easing } from 'react-native';
+import { LayoutDashboard, ReceiptText, PackageSearch, Wallet, Loader2 } from 'lucide-react-native';
 
 import { COLORS } from './src/constants/theme';
 import { storage } from './src/utils/storage';
@@ -73,13 +73,39 @@ function MainTabs() {
   );
 }
 
+const DynamicLoadingIcon = () => {
+  const spinValue = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.timing(spinValue, {
+        toValue: 1,
+        duration: 1000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, [spinValue]);
+
+  const spin = spinValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <Animated.View style={{ transform: [{ rotate: spin }] }}>
+      <Loader2 size={48} color={COLORS.primary} />
+    </Animated.View>
+  );
+};
+
 function Navigation() {
   const { isLoggedIn, isLoading } = useAuth();
 
   if (isLoading) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <DynamicLoadingIcon />
       </View>
     );
   }
