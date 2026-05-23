@@ -1,32 +1,85 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { ArrowUpRight, Package, AlertCircle, TrendingUp, ChevronRight } from 'lucide-react-native';
+import apiClient from '../api/client';
 
-export default function BalanceHistoryScreen() {
-  const sections = [
-    {
-      title: 'Hari Ini',
-      data: [
-        { id: '1', type: 'transaction', subType: 'Penjualan', amount: 'Rp 45.000', time: '10:45 AM', status: 'Berhasil' },
-        { id: '2', type: 'request', subType: 'Isi Ulang', amount: '20 Barang', time: '09:30 AM', status: 'Menunggu' },
-      ]
-    },
-    {
-      title: 'Kemarin',
-      data: [
-        { id: '3', type: 'report', subType: 'Kerusakan', amount: '1 Kerusakan', time: '04:15 PM', status: 'Kritis' },
-        { id: '4', type: 'transaction', subType: 'Bonus', amount: 'Rp 120.500', time: '11:20 AM', status: 'Berhasil' },
-      ]
+export default function BalanceHistoryScreen({ navigation }: any) {
+  const [balance, setBalance] = useState('Rp 0');
+  const [sections, setSections] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(value).replace(/,00$/, '');
+  };
+
+  const groupActivitiesByDate = (activities: any[]) => {
+    const groups: Record<string, any[]> = {};
+    activities.forEach(item => {
+      const groupName = item.date_group || 'Lainnya';
+      if (!groups[groupName]) {
+        groups[groupName] = [];
+      }
+      groups[groupName].push({
+        id: item.id,
+        type: item.type,
+        subType: item.sub_type,
+        amount: item.amount,
+        time: item.time,
+        status: item.status
+      });
+    });
+
+    return Object.keys(groups).map(key => ({
+      title: key,
+      data: groups[key]
+    }));
+  };
+
+  const loadWalletData = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    try {
+      // 1. Fetch wallet summary
+      const summaryRes = await apiClient.get('private/wallet/summary');
+      if (summaryRes.data) {
+        const balanceVal = summaryRes.data.current_balance || 0;
+        setBalance(formatCurrency(balanceVal));
+      }
+
+      // 2. Fetch wallet history logs
+      const historyRes = await apiClient.get('private/wallet/history');
+      if (historyRes.data) {
+        const grouped = groupActivitiesByDate(historyRes.data);
+        setSections(grouped);
+      }
+    } catch (error: any) {
+      console.error('Wallet load error:', error);
+      Alert.alert('Error', 'Terjadi kesalahan saat memuat data dompet');
+    } finally {
+      if (!isSilent) setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    loadWalletData();
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadWalletData(true);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -53,11 +106,15 @@ export default function BalanceHistoryScreen() {
         
         <View style={styles.balanceCard}>
           <View style={styles.balanceHeader}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.balanceLabel}>Saldo Saat Ini</Text>
-              <Text style={styles.balanceAmount}>Rp 485.500</Text>
+              {loading && sections.length === 0 ? (
+                <ActivityIndicator size="small" color={COLORS.primary} style={{ alignSelf: 'flex-start', marginVertical: SPACING.xs }} />
+              ) : (
+                <Text style={styles.balanceAmount}>{balance}</Text>
+              )}
             </View>
-            <TouchableOpacity style={styles.withdrawButton}>
+            <TouchableOpacity style={styles.withdrawButton} onPress={() => Alert.alert('Tarik Tunai', 'Silakan hubungi administrator stasiun Anda untuk pencairan komisi.')}>
               <Text style={styles.withdrawText}>Tarik Tunai</Text>
             </TouchableOpacity>
           </View>
@@ -88,33 +145,41 @@ export default function BalanceHistoryScreen() {
 
         <View style={styles.activityHeader}>
           <Text style={styles.sectionTitle}>Aktivitas Terakhir</Text>
-          <TouchableOpacity>
-            <Text style={styles.viewAllText}>Lihat Semua</Text>
+          <TouchableOpacity onPress={() => loadWalletData()}>
+            <Text style={styles.viewAllText}>Perbarui</Text>
           </TouchableOpacity>
         </View>
 
-        {sections.map((section) => (
-          <View key={section.title} style={styles.section}>
-            <Text style={styles.sectionHeader}>{section.title}</Text>
-            {section.data.map((item) => (
-              <View key={item.id} style={styles.activityItem}>
-                <View style={styles.iconContainer}>
-                  {renderIcon(item.type)}
-                </View>
-                <View style={styles.activityInfo}>
-                  <Text style={styles.activityType}>{item.subType}</Text>
-                  <Text style={styles.activityTime}>{item.time}</Text>
-                </View>
-                <View style={styles.activityValues}>
-                  <Text style={styles.activityAmount}>{item.amount}</Text>
-                  <Text style={[styles.activityStatus, { color: getStatusColor(item.status) }]}>
-                    {item.status}
-                  </Text>
-                </View>
-              </View>
-            ))}
+        {loading && sections.length === 0 ? (
+          <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
+        ) : sections.length === 0 ? (
+          <View style={{ padding: SPACING.xl, alignItems: 'center' }}>
+            <Text style={{ color: COLORS.textSecondary, fontWeight: '700' }}>Tidak ada riwayat aktivitas</Text>
           </View>
-        ))}
+        ) : (
+          sections.map((section) => (
+            <View key={section.title} style={styles.section}>
+              <Text style={styles.sectionHeader}>{section.title}</Text>
+              {section.data.map((item: any) => (
+                <View key={item.id} style={styles.activityItem}>
+                  <View style={styles.iconContainer}>
+                    {renderIcon(item.type)}
+                  </View>
+                  <View style={styles.activityInfo}>
+                    <Text style={styles.activityType}>{item.subType}</Text>
+                    <Text style={styles.activityTime}>{item.time}</Text>
+                  </View>
+                  <View style={styles.activityValues}>
+                    <Text style={styles.activityAmount}>{item.amount}</Text>
+                    <Text style={[styles.activityStatus, { color: getStatusColor(item.status) }]}>
+                      {item.status}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );

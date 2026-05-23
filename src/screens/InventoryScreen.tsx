@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -23,18 +23,45 @@ interface InventoryItem {
   icon: any;
 }
 
+const getProductIcon = (name: string) => {
+  const lowercase = name.toLowerCase();
+  if (lowercase.includes('bean')) return Bean;
+  if (lowercase.includes('cup') || lowercase.includes('paper')) return Package;
+  return Coffee;
+};
+
 export default function InventoryScreen() {
   const [activeTab, setActiveTab] = useState<'request' | 'report'>('request');
-  
-  // Lifted state for Restock Request
-  const [requestItems, setRequestItems] = useState<InventoryItem[]>([
-    { id: '1', name: 'Original Cold Brew', stock: 12, request: '0', icon: Coffee },
-    { id: '2', name: 'Vanilla Latte', stock: 8, request: '0', icon: Coffee },
-    { id: '3', name: 'Arabica Beans (250g)', stock: 5, request: '0', icon: Bean },
-    { id: '4', name: 'Paper Cups (S)', stock: 0, request: '0', icon: Package },
-  ]);
+  const [requestItems, setRequestItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [showReview, setShowReview] = useState(false);
+
+  const fetchInventory = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    try {
+      const response = await apiClient.get('private/inventories');
+      if (response.data && response.data.status === 'success') {
+        const liveItems = response.data.data.map((item: any) => ({
+          id: item.product_id,
+          name: item.product_name,
+          stock: item.qty_current,
+          request: '0',
+          icon: getProductIcon(item.product_name),
+        }));
+        setRequestItems(liveItems);
+      }
+    } catch (error: any) {
+      console.error('Fetch inventories error:', error);
+      Alert.alert('Gagal', 'Terjadi kesalahan saat memuat data inventaris');
+    } finally {
+      if (!isSilent) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInventory();
+  }, []);
 
   const updateRequest = (id: string, delta: number) => {
     setRequestItems(prev => prev.map(item => {
@@ -61,7 +88,7 @@ export default function InventoryScreen() {
       return;
     }
 
-    setLoading(true);
+    setRefreshing(true);
     try {
       const payload = {
         items: itemsToRequest.map(item => ({
@@ -70,19 +97,28 @@ export default function InventoryScreen() {
         }))
       };
 
-      await apiClient.post('public/restocks', payload);
+      await apiClient.post('private/inventory/restock', payload);
       
       Alert.alert('Sukses', 'Permintaan stok berhasil dikirim!');
       setRequestItems(prev => prev.map(item => ({ ...item, request: '0' })));
+      await fetchInventory(true);
     } catch (error: any) {
-      Alert.alert('Gagal', error.message || 'Terjadi kesalahan saat mengirim permintaan');
+      Alert.alert('Gagal', error.response?.data?.message || error.message || 'Terjadi kesalahan saat mengirim permintaan');
     } finally {
-      setLoading(false);
+      setRefreshing(false);
       setShowReview(false);
     }
   };
 
   const itemsToRequest = requestItems.filter(item => parseInt(item.request) > 0);
+
+  if (loading && requestItems.length === 0) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} testID="inventory-safe-area" edges={['left', 'right']}>
@@ -115,14 +151,14 @@ export default function InventoryScreen() {
             handleManualInput={handleManualInput} 
           />
         ) : (
-          <ReportDamageView items={requestItems} />
+          <ReportDamageView items={requestItems} fetchInventory={fetchInventory} />
         )}
       </ScrollView>
 
       {/* FIXED FAB POSITION AT THE BOTTOM RIGHT */}
       {activeTab === 'request' && (
         <TouchableOpacity 
-          style={[styles.submitFab, loading && styles.submitFabDisabled]} 
+          style={[styles.submitFab, refreshing && styles.submitFabDisabled]} 
           onPress={() => {
             if (itemsToRequest.length === 0) {
               Alert.alert('Peringatan', 'Harap isi jumlah permintaan stok terlebih dahulu.');
@@ -130,9 +166,9 @@ export default function InventoryScreen() {
               setShowReview(true);
             }
           }}
-          disabled={loading}
+          disabled={refreshing}
         >
-          {loading ? (
+          {refreshing ? (
             <ActivityIndicator color={COLORS.black} />
           ) : (
             <Send size={28} color={COLORS.black} />
@@ -182,16 +218,16 @@ export default function InventoryScreen() {
               <TouchableOpacity 
                 style={styles.secondaryButton}
                 onPress={() => setShowReview(false)}
-                disabled={loading}
+                disabled={refreshing}
               >
                 <Text style={styles.secondaryButtonText}>UBAH</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={styles.primaryButton}
                 onPress={handleSubmit}
-                disabled={loading}
+                disabled={refreshing}
               >
-                {loading ? (
+                {refreshing ? (
                   <ActivityIndicator color={COLORS.black} />
                 ) : (
                   <Text style={styles.primaryButtonText}>KIRIM PERMINTAAN</Text>
@@ -212,6 +248,14 @@ const RequestStockView = ({ items, updateRequest, handleManualInput }: any) => {
     if (stock < 10) return COLORS.primary;
     return COLORS.textSecondary;
   };
+
+  if (items.length === 0) {
+    return (
+      <View style={{ padding: SPACING.xl, alignItems: 'center' }}>
+        <Text style={{ color: COLORS.textSecondary, fontWeight: '700' }}>Tidak ada produk tersedia</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.section}>
@@ -256,9 +300,57 @@ const RequestStockView = ({ items, updateRequest, handleManualInput }: any) => {
   );
 };
 
-const ReportDamageView = ({ items }: { items: InventoryItem[] }) => {
+const ReportDamageView = ({ items, fetchInventory }: { items: InventoryItem[], fetchInventory: (isSilent?: boolean) => Promise<void> }) => {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [damageQty, setDamageQty] = useState(1);
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmitDamage = async () => {
+    if (!selectedItemId) {
+      Alert.alert('Peringatan', 'Harap pilih produk yang rusak terlebih dahulu.');
+      return;
+    }
+
+    if (!reason.trim()) {
+      Alert.alert('Peringatan', 'Harap isi keterangan/alasan kerusakan.');
+      return;
+    }
+
+    const selectedItem = items.find(item => item.id === selectedItemId);
+    if (!selectedItem) return;
+
+    if (selectedItem.stock === 0) {
+      Alert.alert('Peringatan', 'Stok produk ini kosong. Tidak dapat melaporkan kerusakan.');
+      return;
+    }
+
+    if (damageQty > selectedItem.stock) {
+      Alert.alert('Peringatan', `Jumlah kerusakan (${damageQty}) tidak boleh melebihi stok yang tersedia (${selectedItem.stock} unit).`);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        product_id: selectedItemId,
+        quantity: damageQty,
+        reason: reason.trim(),
+      };
+
+      await apiClient.post('private/transaction/waste', payload);
+
+      Alert.alert('Sukses', 'Laporan kerusakan berhasil dikirim!');
+      setSelectedItemId(null);
+      setDamageQty(1);
+      setReason('');
+      await fetchInventory(true);
+    } catch (error: any) {
+      Alert.alert('Gagal', error.response?.data?.message || error.message || 'Terjadi kesalahan saat mengirim laporan');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <View style={styles.form}>
@@ -312,19 +404,29 @@ const ReportDamageView = ({ items }: { items: InventoryItem[] }) => {
       <Text style={styles.formLabel}>Keterangan Kerusakan</Text>
       <TextInput
         style={styles.textArea}
-        placeholder="Jelaskan detail kerusakan..."
+        placeholder="Jelaskan detail kerusakan (misal: pecah, tumpah di jalan)..."
         placeholderTextColor={COLORS.textSecondary}
         multiline
         numberOfLines={4}
+        value={reason}
+        onChangeText={setReason}
       />
 
-      <TouchableOpacity style={styles.photoButton}>
+      <TouchableOpacity style={styles.photoButton} onPress={() => Alert.alert('Info', 'Fitur ambil foto akan segera hadir!')}>
         <Camera size={24} color={COLORS.primary} />
         <Text style={styles.photoButtonText}>Ambil Foto Bukti</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.submitButton}>
-        <Text style={styles.submitButtonText}>Kirim Laporan</Text>
+      <TouchableOpacity 
+        style={[styles.submitButton, submitting && { opacity: 0.6 }]} 
+        onPress={handleSubmitDamage}
+        disabled={submitting}
+      >
+        {submitting ? (
+          <ActivityIndicator color={COLORS.black} />
+        ) : (
+          <Text style={styles.submitButtonText}>Kirim Laporan</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
