@@ -72,7 +72,8 @@ export default function TransactionEntryScreen() {
           await storage.saveTokens(response.data.access_token, refreshToken || '');
         }
 
-        const catNames = ['SEMUA', ...response.data.data.map((c: any) => c.name)];
+        const data = response.data.data || [];
+        const catNames = ['SEMUA', ...data.map((c: any) => c.name)];
         setCategories(catNames);
         if (catNames.length > 0) {
           setActiveCategory('SEMUA');

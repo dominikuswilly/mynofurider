@@ -61,8 +61,9 @@ export default function BalanceHistoryScreen({ navigation }: any) {
 
       // 2. Fetch wallet history logs
       const historyRes = await apiClient.get('private/wallet/history');
-      if (historyRes.data) {
-        const grouped = groupActivitiesByDate(historyRes.data);
+      if (historyRes.data && historyRes.data.status === 'success') {
+        const historyData = historyRes.data.data || [];
+        const grouped = groupActivitiesByDate(historyData);
         setSections(grouped);
       }
     } catch (error: any) {
