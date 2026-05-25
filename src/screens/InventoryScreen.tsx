@@ -42,7 +42,7 @@ export default function InventoryScreen() {
     try {
       const response = await apiClient.get('private/inventories');
       if (response.data && response.data.status === 'success') {
-        const liveItems = response.data.data.map((item: any) => ({
+        const liveItems = (response.data.data || []).map((item: any) => ({
           id: item.product_id,
           name: item.product_name,
           stock: item.qty_current,
